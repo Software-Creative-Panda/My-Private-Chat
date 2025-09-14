@@ -49,7 +49,7 @@
         // --- State ---
         let currentUser = null;
         let selectedUserId = null;
-        let adminId = null; // Will store admin's ID for regular users
+        let adminId = null;
         let socket;
         
         // --- Authentication & Initialization ---
@@ -73,7 +73,9 @@
                 } else {
                     chatTitle.textContent = "Chat with Admin";
                     messageInputArea.style.display = 'flex';
-                    selectedUserId = 'admin'; // Placeholder to trigger history fetch
+                    // We need the admin's ID to fetch history.
+                    // We'll pass a placeholder and the server will know what to do.
+                    selectedUserId = 'admin'; 
                     fetchChatHistory(token);
                 }
 
@@ -88,10 +90,10 @@
 
             socket.on('receiveMessage', (message) => {
                 const otherPartyId = currentUser.isAdmin ? selectedUserId : adminId;
-                
-                // Display message if it belongs to the current conversation
+
+                // Only display the message if it's part of the currently active chat
                 if ((message.senderId === otherPartyId && message.recipientId === currentUser.id) || 
-                    (message.recipientId === otherPartyId && message.senderId === currentUser.id)) {
+                    (message.senderId === currentUser.id && message.recipientId === otherPartyId)) {
                     displayMessage(message);
                 }
             });
@@ -154,14 +156,18 @@
                 const res = await fetch(`/api/messages/${selectedUserId}`, {
                     headers: { 'x-auth-token': token }
                 });
+                 if (!res.ok) {
+                    throw new Error(`Server responded with status: ${res.status}`);
+                }
                 const response = await res.json();
                 const messages = response.messages;
+                
                 if (!currentUser.isAdmin) {
                     adminId = response.adminId;
                 }
                 
-                messagesBox.innerHTML = ''; // Clear loading message
-                if (messages.length === 0) {
+                messagesBox.innerHTML = ''; 
+                if (!messages || messages.length === 0) {
                     const emptyState = document.createElement('div');
                     emptyState.className = 'chat-area-welcome';
                     emptyState.innerHTML = `<h2>This is the beginning of your conversation.</h2><p>Messages you send will appear here.</p>`;
@@ -180,7 +186,7 @@
             if (text && socket) {
                 const recipientId = currentUser.isAdmin ? selectedUserId : null;
                 socket.emit('sendMessage', { recipientId, text });
-                messageInput.value = ''; // Clear input immediately
+                messageInput.value = '';
             }
         }
 
@@ -189,7 +195,6 @@
         });
 
         function displayMessage(message) {
-            // Remove the initial welcome message if it exists
             const welcomeBox = messagesBox.querySelector('.chat-area-welcome');
             if (welcomeBox) welcomeBox.remove();
             
@@ -208,7 +213,9 @@
 
             msgDiv.appendChild(textP);
             msgDiv.appendChild(timeSpan);
-            messagesBox.appendChild(msgiv);
+            
+            // This was the line with the typo ("msgiv" instead of "msgDiv")
+            messagesBox.appendChild(msgDiv); 
             
             messagesBox.scrollTop = messagesBox.scrollHeight;
         }
