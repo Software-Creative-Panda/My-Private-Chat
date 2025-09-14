@@ -25,21 +25,15 @@ body {
 .auth-box { background: var(--light-text); padding: 40px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; overflow: hidden; }
 .title { font-size: 2.5rem; font-weight: 700; margin-bottom: 8px; }
 .subtitle { color: #7f8c8d; margin-bottom: 30px; }
-
-/* New Tab Styles */
 .auth-tabs { display: flex; border-bottom: 1px solid var(--border-color); margin-bottom: 30px; }
 .tab-btn { flex: 1; padding: 15px; border: none; background: none; cursor: pointer; font-size: 1.1rem; font-weight: 500; color: #7f8c8d; transition: color 0.2s, border-bottom 0.2s; border-bottom: 3px solid transparent; }
 .tab-btn.active { color: var(--primary-color); border-bottom: 3px solid var(--primary-color); }
-
-/* Form content styling */
 .form-content { display: none; }
 .form-content.active { display: block; }
-
 .input-field { width: 100%; padding: 12px 15px; margin-bottom: 15px; border-radius: 8px; border: 1px solid var(--border-color); box-sizing: border-box; font-size: 1rem; }
 .btn { width: 100%; padding: 12px 15px; border: none; background-color: var(--primary-color); color: var(--light-text); border-radius: 8px; font-size: 1rem; font-weight: 500; cursor: pointer; transition: background-color 0.2s; }
 .btn:hover { background-color: #2980b9; }
 .message-area { margin-top: 20px; font-weight: 500; min-height: 20px; }
-
 
 /* --- Chat Page --- */
 .chat-container { width: 95%; max-width: 1000px; height: 90vh; background: var(--light-text); border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: flex; flex-direction: column; }
@@ -47,28 +41,51 @@ body {
 .chat-header h1 { margin: 0; font-size: 1.5rem; }
 .btn-logout { width: auto; padding: 8px 15px; }
 .main-layout { display: flex; flex: 1; overflow: hidden; }
-
 .admin-panel { width: 250px; border-right: 1px solid var(--border-color); padding: 20px; overflow-y: auto; box-sizing: border-box; }
 .admin-panel h2 { margin-top: 0; }
 #user-list { list-style: none; padding: 0; }
 #user-list li { padding: 10px; cursor: pointer; border-radius: 8px; margin-bottom: 5px; display: flex; justify-content: space-between; align-items: center; }
 #user-list li:hover { background-color: var(--light-bg); }
 #user-list li.selected { background-color: var(--primary-color); color: var(--light-text); }
-
 .status-dot { height: 8px; width: 8px; background-color: #ccc; border-radius: 50%; display: inline-block; transition: background-color 0.3s; }
 .status-dot.online { background-color: var(--online-color); }
-
 .chat-area { flex: 1; display: flex; flex-direction: column; padding: 0 20px 20px 20px; }
 .chat-area-welcome { text-align: center; margin: auto; color: #7f8c8d; }
-.messages-box { flex: 1; overflow-y: auto; padding-top: 20px; }
-.message { padding: 8px 15px; border-radius: 18px; max-width: 70%; word-wrap: break-word; margin-bottom: 10px; }
+
+/* === MESSENGER UI UPDATES === */
+.messages-box { 
+    flex: 1; 
+    overflow-y: auto; 
+    padding: 20px 10px; 
+    display: flex; /* Key change */
+    flex-direction: column; /* Key change */
+}
+.message { 
+    padding: 8px 15px; 
+    border-radius: 18px; 
+    max-width: 70%; 
+    word-wrap: break-word; 
+    margin-bottom: 10px; 
+    line-height: 1.4;
+}
 .message .msg-text { margin: 0; }
 .message .msg-time { font-size: 0.75rem; color: rgba(0,0,0,0.4); display: block; margin-top: 4px; text-align: right; }
 
-.message.sent { background-color: var(--sent-msg-bg); color: var(--light-text); align-self: flex-end; border-bottom-right-radius: 4px; }
+.message.sent { 
+    background-color: var(--sent-msg-bg); 
+    color: var(--light-text); 
+    align-self: flex-end; /* Key change */
+    border-bottom-right-radius: 4px; 
+}
 .message.sent .msg-time { color: rgba(255,255,255,0.6); }
 
-.message.received { background-color: var(--received-msg-bg); color: var(--dark-text); align-self: flex-start; border-bottom-left-radius: 4px; }
+.message.received { 
+    background-color: var(--received-msg-bg); 
+    color: var(--dark-text); 
+    align-self: flex-start; /* Key change */
+    border-bottom-left-radius: 4px; 
+}
+/* === END MESSENGER UI UPDATES === */
 
 .message-input-area { display: flex; margin-top: 15px; }
 .message-input-area .input-field { flex: 1; margin-bottom: 0; border-top-right-radius: 0; border-bottom-right-radius: 0; }
