@@ -111,7 +111,8 @@
                 <!-- Messages will be rendered here -->
             </div>
             <div id="chat-form-container" class="p-4 border-t border-pink-200 bg-white">
-                <form id="message-form" class="flex space-x-2">
+                <div id="app-status" class="hidden p-3 text-sm rounded-lg text-center font-semibold transition-all duration-300"></div>
+                <form id="message-form" class="flex space-x-2 mt-2">
                     <input type="text" id="message-input" placeholder="Type a message..." class="flex-1 px-4 py-3 rounded-full border border-pink-300 focus:ring-pink-500 focus:border-pink-500">
                     <button type="submit" class="bg-pink-600 text-white p-3 rounded-full shadow-md hover:bg-pink-700 transition-colors">
                         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
@@ -190,10 +191,10 @@
         const chatContainer = document.getElementById('chat-container');
         const chatHeader = document.getElementById('chat-header');
         const messagesContainer = document.getElementById('messages');
-        const messageForm = document.getElementById('message-form');
         const messageInput = document.getElementById('message-input');
         const backToListBtn = document.getElementById('back-to-list-btn');
         const loadingOverlay = document.getElementById('loading-overlay');
+        const appStatus = document.getElementById('app-status');
 
         // Firebase Initialization
         const app = initializeApp(firebaseConfig);
@@ -202,13 +203,16 @@
 
         let currentUser = null;
         let unsubscribeMessages = null;
+        let activeChatId = null;
 
         // --- Functions ---
         
         function showMessage(element, text, isError = false) {
-            element.textContent = text;
-            element.className = `p-3 text-sm rounded-lg text-center font-semibold ${isError ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`;
-            element.classList.remove('hidden');
+            if (element) {
+                element.textContent = text;
+                element.className = `p-3 text-sm rounded-lg text-center font-semibold ${isError ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`;
+                element.classList.remove('hidden');
+            }
         }
 
         function showLoading() {
@@ -257,6 +261,7 @@
             if (unsubscribeMessages) {
                 unsubscribeMessages(); // Unsubscribe from previous chat
             }
+            activeChatId = chatId;
             const messagesRef = collection(db, `artifacts/${appId}/private_messages/${chatId}/messages`);
             const q = query(messagesRef, orderBy('createdAt'));
             unsubscribeMessages = onSnapshot(q, (snapshot) => {
@@ -264,7 +269,7 @@
                 renderMessages(messages);
             }, (error) => {
                 console.error("Error listening to messages:", error);
-                // Display user-friendly error
+                showMessage(appStatus, "Error loading messages.", true);
             });
         }
         
@@ -278,11 +283,11 @@
             
             onSnapshot(q, async (snapshot) => {
                 const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                console.log("Found users in database:", users); // <--- DEBUGGING LINE
+                console.log("Found users in database:", users);
                 userList.innerHTML = '';
                 
                 for (const user of users) {
-                    if (user.id === OWNER_ID) continue; // Skip the owner's own profile
+                    if (user.id === OWNER_ID) continue;
 
                     const userItem = document.createElement('div');
                     userItem.className = 'p-4 border-b border-pink-200 cursor-pointer hover:bg-pink-100 transition-colors rounded-lg flex justify-between items-center';
@@ -296,9 +301,9 @@
                         </div>
                     `;
                     userItem.addEventListener('click', () => {
-                        // Switch to the chat view for this user
                         chatContainer.classList.remove('hidden');
                         userListContainer.classList.add('hidden');
+                        backToListBtn.classList.remove('hidden');
                         const chatId = currentUser.uid > user.id ? `${currentUser.uid}_${user.id}` : `${user.id}_${currentUser.uid}`;
                         chatHeader.textContent = `Chat with ${getDisplayName(user)}`;
                         userIdDisplay.textContent = `ID: ${user.id}`;
@@ -314,28 +319,10 @@
             chatContainer.classList.remove('hidden');
             userIdDisplay.textContent = `ID: ${currentUser.uid}`;
             chatHeader.textContent = `Your private chat with James`;
-
+            backToListBtn.classList.add('hidden');
+            
             const chatId = currentUser.uid > OWNER_ID ? `${currentUser.uid}_${OWNER_ID}` : `${OWNER_ID}_${currentUser.uid}`;
             listenForMessages(chatId);
-            
-            messageForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const text = messageInput.value.trim();
-                if (text === '') return;
-                
-                const messagesRef = collection(db, `artifacts/${appId}/private_messages/${chatId}/messages`);
-                try {
-                    await addDoc(messagesRef, {
-                        text,
-                        senderId: currentUser.uid,
-                        createdAt: serverTimestamp()
-                    });
-                    messageInput.value = '';
-                } catch (e) {
-                    console.error("Error sending message:", e);
-                    showMessage(loginStatus, "Error sending message.", true);
-                }
-            });
         }
         
         // --- Event Listeners ---
@@ -400,12 +387,8 @@
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 await createUserData(userCredential.user, name);
-                
-                // Immediately sign out to prevent the automatic login and flash
                 await signOut(auth);
-                
                 showMessage(signupStatus, "Account created successfully! You can now log in.", false);
-                // Redirect cleanly to the login container
                 landingContainer.classList.add('hidden');
                 loginContainer.classList.remove('hidden');
                 signupContainer.classList.add('hidden');
@@ -419,16 +402,35 @@
 
         logoutBtnUser.addEventListener('click', async () => {
             await signOut(auth);
-            showMessage(loginStatus, "Logged out successfully.");
         });
 
         logoutBtnOwner.addEventListener('click', async () => {
             await signOut(auth);
-            showMessage(loginStatus, "Logged out successfully.");
         });
 
         backToListBtn.addEventListener('click', () => {
              loadOwnerDashboard();
+        });
+
+        // Event listener for sending messages
+        messageForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = messageInput.value.trim();
+            if (text === '' || !currentUser || !activeChatId) return;
+            
+            const messagesRef = collection(db, `artifacts/${appId}/private_messages/${activeChatId}/messages`);
+
+            try {
+                await addDoc(messagesRef, {
+                    text,
+                    senderId: currentUser.uid,
+                    createdAt: serverTimestamp()
+                });
+                messageInput.value = '';
+            } catch (e) {
+                console.error("Error sending message:", e);
+                showMessage(appStatus, "Error sending message.", true);
+            }
         });
 
         // --- Auth State Change Listener ---
@@ -458,29 +460,6 @@
                 appContainer.classList.add('hidden');
             }
              hideLoading(); // Hide loading when auth state is determined
-        });
-
-        // Event listener for sending messages
-        messageForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const text = messageInput.value.trim();
-            if (text === '') return;
-            
-            const recipientId = (currentUser.uid === OWNER_ID) ? userIdDisplay.textContent.replace('ID: ', '') : OWNER_ID;
-            const chatId = currentUser.uid > recipientId ? `${currentUser.uid}_${recipientId}` : `${recipientId}_${currentUser.uid}`;
-            const messagesRef = collection(db, `artifacts/${appId}/private_messages/${chatId}/messages`);
-
-            try {
-                await addDoc(messagesRef, {
-                    text,
-                    senderId: currentUser.uid,
-                    createdAt: serverTimestamp()
-                });
-                messageInput.value = '';
-            } catch (e) {
-                console.error("Error sending message:", e);
-                showMessage(loginStatus, "Error sending message.", true);
-            }
         });
         
         // Initial state
