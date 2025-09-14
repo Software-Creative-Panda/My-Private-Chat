@@ -196,7 +196,6 @@
             userListContainer.classList.remove('hidden');
             chatContainer.classList.add('hidden');
             ownerIdDisplay.textContent = `ID: ${currentUser.uid}`;
-            backToListBtn.classList.add('hidden'); // Hide back button on desktop
             
             const usersRef = collection(db, `artifacts/${appId}/users`);
             const q = query(usersRef, orderBy('createdAt'));
@@ -224,7 +223,6 @@
                         // Switch to the chat view for this user
                         chatContainer.classList.remove('hidden');
                         userListContainer.classList.add('hidden');
-                        backToListBtn.classList.remove('hidden'); // Show back button
                         const chatId = currentUser.uid > user.id ? `${currentUser.uid}_${user.id}` : `${user.id}_${currentUser.uid}`;
                         chatHeader.textContent = `Chat with User`;
                         userIdDisplay.textContent = `ID: ${user.id}`;
@@ -240,7 +238,6 @@
             chatContainer.classList.remove('hidden');
             userIdDisplay.textContent = `ID: ${currentUser.uid}`;
             chatHeader.textContent = 'Your private chat';
-            backToListBtn.classList.add('hidden'); // Hide back button for user view
 
             const chatId = currentUser.uid > OWNER_ID ? `${currentUser.uid}_${OWNER_ID}` : `${OWNER_ID}_${currentUser.uid}`;
             listenForMessages(chatId);
@@ -314,21 +311,45 @@
         });
 
         // --- Auth State Change Listener ---
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
                 authContainer.classList.add('hidden');
                 appContainer.classList.remove('hidden');
+                
                 if (currentUser.uid === OWNER_ID) {
-                    loadOwnerDashboard();
+                    await loadOwnerDashboard();
                 } else {
-                    loadUserChat();
+                    await loadUserChat();
                 }
             } else {
                 currentUser = null;
                 authContainer.classList.remove('hidden');
                 appContainer.classList.add('hidden');
                 authForm.reset();
+            }
+        });
+
+        // Event listener for sending messages
+        messageForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = messageInput.value.trim();
+            if (text === '') return;
+            
+            const recipientId = (currentUser.uid === OWNER_ID) ? userIdDisplay.textContent.replace('ID: ', '') : OWNER_ID;
+            const chatId = currentUser.uid > recipientId ? `${currentUser.uid}_${recipientId}` : `${recipientId}_${currentUser.uid}`;
+            const messagesRef = collection(db, `artifacts/${appId}/private_messages/${chatId}/messages`);
+
+            try {
+                await addDoc(messagesRef, {
+                    text,
+                    senderId: currentUser.uid,
+                    createdAt: serverTimestamp()
+                });
+                messageInput.value = '';
+            } catch (e) {
+                console.error("Error sending message:", e);
+                showMessage("Error sending message.", true);
             }
         });
     </script>
