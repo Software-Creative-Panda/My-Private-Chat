@@ -25,25 +25,25 @@
 </head>
 <body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
 
-    <div id="auth-container" class="bg-white rounded-3xl shadow-xl w-full max-w-md p-8 space-y-6">
-        <h2 class="text-2xl font-bold text-center text-gray-800">Welcome</h2>
+    <div id="auth-container" class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 space-y-6 transform transition-all duration-300">
+        <h2 class="text-3xl font-bold text-center text-gray-800">Welcome</h2>
         <p class="text-sm text-center text-gray-600">Log in to view your chats or sign up to get started.</p>
-        <div id="status-message" class="hidden p-3 text-sm rounded-lg text-center font-semibold"></div>
+        <div id="status-message" class="hidden p-3 text-sm rounded-lg text-center font-semibold transition-all duration-300"></div>
         <form id="auth-form" class="space-y-4">
             <div>
-                <input type="email" id="auth-email" placeholder="Email" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500">
+                <input type="email" id="auth-email" placeholder="Email" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200">
             </div>
             <div>
-                <input type="password" id="auth-password" placeholder="Password" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500">
+                <input type="password" id="auth-password" placeholder="Password" class="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-indigo-500 focus:border-indigo-500 transition-colors duration-200">
             </div>
             <div class="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
-                <button type="button" id="login-btn" class="w-full px-4 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-colors">Log In</button>
-                <button type="button" id="signup-btn" class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-colors">Sign Up</button>
+                <button type="button" id="login-btn" class="w-full px-4 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition-colors transform hover:scale-105">Log In</button>
+                <button type="button" id="signup-btn" class="w-full px-4 py-3 bg-gray-200 text-gray-800 font-semibold rounded-lg hover:bg-gray-300 transition-colors transform hover:scale-105">Sign Up</button>
             </div>
         </form>
     </div>
 
-    <div id="app-container" class="hidden bg-white rounded-3xl shadow-xl w-full max-w-4xl h-[80vh] flex flex-col md:flex-row overflow-hidden">
+    <div id="app-container" class="hidden bg-white rounded-3xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col md:flex-row overflow-hidden transform transition-all duration-300">
         
         <!-- Owner View: User List -->
         <div id="user-list-container" class="hidden w-full md:w-1/3 border-r border-gray-200 bg-gray-50 flex flex-col">
@@ -279,8 +279,9 @@
             }
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                showMessage("Account created successfully!");
+                showMessage("Account created successfully! You can now log in.");
                 await createUserData(userCredential.user); // Create user data in Firestore
+                await signOut(auth); // Log out immediately to show the login screen
             } catch (error) {
                 console.error("Sign up failed:", error.code, error.message);
                 showMessage("Sign up failed. A user with that email may already exist or the password is too weak.", true);
