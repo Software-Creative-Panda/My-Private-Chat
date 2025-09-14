@@ -96,7 +96,7 @@
     </div>
     
     <!-- Loading overlay -->
-    <div id="loading-overlay" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+    <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
         <div class="spinner"></div>
     </div>
 
@@ -352,11 +352,13 @@
                 } else {
                     await loadUserChat();
                 }
+                hideLoading(); // Hide loading when auth state is determined
             } else {
                 currentUser = null;
                 authContainer.classList.remove('hidden');
                 appContainer.classList.add('hidden');
                 authForm.reset();
+                hideLoading(); // Hide loading when auth state is determined
             }
         });
 
@@ -382,6 +384,9 @@
                 showMessage("Error sending message.", true);
             }
         });
+        
+        // Initial state
+        showLoading(); // Show loading when the page first loads
     </script>
 </body>
 </html>
