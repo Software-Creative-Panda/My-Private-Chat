@@ -3,299 +3,483 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Private Chat</title>
+    <title>Private Chat App</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Simple scrollbar styling for a better look */
-        #chat-messages::-webkit-scrollbar {
-            width: 8px;
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #fce7f3; /* Light pink background */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
-        #chat-messages::-webkit-scrollbar-track {
-            background: #f1f1f1;
+        .scrollbar-w-2::-webkit-scrollbar {
+            width: 0.5rem;
         }
-        #chat-messages::-webkit-scrollbar-thumb {
-            background: #888;
-            border-radius: 4px;
+        .scrollbar-w-2::-webkit-scrollbar-thumb {
+            background-color: #fbcfe8; /* Soft pink scrollbar thumb */
+            border-radius: 0.25rem;
         }
-        #chat-messages::-webkit-scrollbar-thumb:hover {
-            background: #555;
+        .spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top-color: #fff;
+            border-radius: 50%;
+            width: 2rem;
+            height: 2rem;
+            animation: spin 1s linear infinite;
         }
-        .message {
-            max-width: 75%;
-        }
-        .sent {
-            align-self: flex-end;
-            background-color: #dcf8c6;
-        }
-        .received {
-            align-self: flex-start;
-            background-color: #ffffff;
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
-<body class="bg-gray-100 font-sans">
+<body class="bg-pink-50 min-h-screen flex items-center justify-center p-4">
 
-    <div id="app-container" class="container mx-auto max-w-lg mt-10 p-4">
-
-        <!-- Authentication Section -->
-        <div id="auth-container" class="">
-            <div class="bg-white p-8 rounded-lg shadow-lg">
-                <!-- Login Form -->
-                <form id="login-form" class="">
-                    <h2 class="text-2xl font-bold mb-6 text-center text-gray-700">Log In</h2>
-                    <div id="login-error" class="text-red-500 text-center mb-4 hidden"></div>
-                    <div class="mb-4">
-                        <label for="login-email" class="block text-gray-700">Email</label>
-                        <input type="email" id="login-email" class="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500" required>
-                    </div>
-                    <div class="mb-6">
-                        <label for="login-password" class="block text-gray-700">Password</label>
-                        <input type="password" id="login-password" class="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500" required>
-                    </div>
-                    <button type="submit" class="w-full bg-blue-500 text-white py-2 rounded-md hover:bg-blue-600 transition-colors">Log In</button>
-                    <p class="text-center mt-4 text-gray-600">
-                        Don't have an account? <a href="#" id="show-signup" class="text-blue-500 hover:underline">Sign Up</a>
-                    </p>
-                </form>
-
-                <!-- Signup Form -->
-                <form id="signup-form" class="hidden">
-                    <h2 class="text-2xl font-bold mb-6 text-center text-gray-700">Sign Up</h2>
-                    <div id="signup-error" class="text-red-500 text-center mb-4 hidden"></div>
-                    <div class="mb-4">
-                        <label for="signup-email" class="block text-gray-700">Email</label>
-                        <input type="email" id="signup-email" class="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500" required>
-                    </div>
-                    <div class="mb-6">
-                        <label for="signup-password" class="block text-gray-700">Password</label>
-                        <input type="password" id="signup-password" class="w-full px-4 py-2 mt-2 border rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500" required>
-                    </div>
-                    <button type="submit" class="w-full bg-green-500 text-white py-2 rounded-md hover:bg-green-600 transition-colors">Sign Up</button>
-                    <p class="text-center mt-4 text-gray-600">
-                        Already have an account? <a href="#" id="show-login" class="text-blue-500 hover:underline">Log In</a>
-                    </p>
-                </form>
-            </div>
+    <!-- Landing Page -->
+    <div id="landing-container" class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 space-y-6 transform transition-all duration-300">
+        <h2 class="text-3xl font-bold text-center text-pink-700">Welcome</h2>
+        <p class="text-sm text-center text-gray-600">Choose an option to continue.</p>
+        <div class="flex flex-col space-y-4">
+            <button id="show-login-btn" class="w-full px-4 py-3 bg-pink-600 text-white font-semibold rounded-lg shadow-md hover:bg-pink-700 transition-colors transform hover:scale-105">Log In</button>
+            <button id="show-signup-btn" class="w-full px-4 py-3 bg-pink-200 text-pink-800 font-semibold rounded-lg hover:bg-pink-300 transition-colors transform hover:scale-105">Sign Up</button>
         </div>
-
-        <!-- Chat Section -->
-        <div id="chat-container" class="hidden">
-            <div class="bg-white rounded-lg shadow-lg">
-                <!-- Header -->
-                <div class="p-4 border-b flex justify-between items-center">
-                    <h2 class="text-xl font-bold text-gray-800">Chat</h2>
-                    <button id="logout-button" class="bg-red-500 text-white px-4 py-2 rounded-md hover:bg-red-600 transition-colors text-sm">Logout</button>
-                </div>
-
-                <!-- Messages -->
-                <div id="chat-messages" class="p-4 h-96 overflow-y-auto flex flex-col space-y-2 bg-gray-50">
-                    <!-- Messages will be dynamically inserted here -->
-                </div>
-
-                <!-- Message Input -->
-                <div class="p-4 border-t">
-                    <form id="message-form" class="flex items-center">
-                        <input type="text" id="message-input" class="flex-grow px-4 py-2 border rounded-l-md focus:outline-none focus:ring-1 focus:ring-blue-500" placeholder="Type your message..." autocomplete="off" required>
-                        <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded-r-md hover:bg-blue-600 transition-colors">Send</button>
-                    </form>
-                </div>
-            </div>
-        </div>
-
     </div>
 
-    <!-- Firebase SDK -->
+    <!-- Login Container -->
+    <div id="login-container" class="hidden bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 space-y-6 transform transition-all duration-300">
+        <h2 class="text-3xl font-bold text-center text-pink-700">Log In</h2>
+        <div id="login-status" class="hidden p-3 text-sm rounded-lg text-center font-semibold transition-all duration-300"></div>
+        <form id="login-form" class="space-y-4">
+            <div>
+                <input type="email" id="login-email" placeholder="Email" class="w-full px-4 py-3 rounded-lg border border-pink-200 focus:ring-pink-500 focus:border-pink-500 transition-colors duration-200">
+            </div>
+            <div>
+                <input type="password" id="login-password" placeholder="Password" class="w-full px-4 py-3 rounded-lg border border-pink-200 focus:ring-pink-500 focus:border-pink-500 transition-colors duration-200">
+            </div>
+            <button type="button" id="login-form-btn" class="w-full px-4 py-3 bg-pink-600 text-white font-semibold rounded-lg shadow-md hover:bg-pink-700 transition-colors transform hover:scale-105">Log In</button>
+        </form>
+        <button id="back-to-landing-login" class="w-full text-sm text-pink-600 hover:text-pink-800 transition-colors">← Back</button>
+    </div>
+
+    <!-- Sign Up Container -->
+    <div id="signup-container" class="hidden bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 space-y-6 transform transition-all duration-300">
+        <h2 class="text-3xl font-bold text-center text-pink-700">Sign Up</h2>
+        <div id="signup-status" class="hidden p-3 text-sm rounded-lg text-center font-semibold transition-all duration-300"></div>
+        <form id="signup-form" class="space-y-4">
+            <div>
+                <input type="text" id="signup-name" placeholder="Name" class="w-full px-4 py-3 rounded-lg border border-pink-200 focus:ring-pink-500 focus:border-pink-500 transition-colors duration-200" required>
+            </div>
+            <div>
+                <input type="email" id="signup-email" placeholder="Email" class="w-full px-4 py-3 rounded-lg border border-pink-200 focus:ring-pink-500 focus:border-pink-500 transition-colors duration-200">
+            </div>
+            <div>
+                <input type="password" id="signup-password" placeholder="Password" class="w-full px-4 py-3 rounded-lg border border-pink-200 focus:ring-pink-500 focus:border-pink-500 transition-colors duration-200">
+            </div>
+            <button type="button" id="signup-form-btn" class="w-full px-4 py-3 bg-pink-600 text-white font-semibold rounded-lg shadow-md hover:bg-pink-700 transition-colors transform hover:scale-105">Sign Up</button>
+        </form>
+        <button id="back-to-landing-signup" class="w-full text-sm text-pink-600 hover:text-pink-800 transition-colors">← Back</button>
+    </div>
+
+
+    <div id="app-container" class="hidden bg-white rounded-3xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col md:flex-row overflow-hidden transform transition-all duration-300">
+        
+        <!-- Owner View: User List -->
+        <div id="user-list-container" class="hidden w-full md:w-1/3 border-r border-pink-200 bg-pink-50 flex flex-col">
+            <header class="p-4 border-b border-pink-200 flex items-center justify-between bg-white shadow-sm">
+                <h3 class="text-lg font-semibold text-pink-700">Conversations</h3>
+                <span id="owner-id-display" class="text-xs text-pink-500 px-2 py-1 bg-pink-200 rounded-full"></span>
+                <button id="logout-btn-owner" class="px-3 py-1 bg-pink-200 rounded-lg text-sm text-pink-700 hover:bg-pink-300 transition-colors">Log Out</button>
+            </header>
+            <div id="user-list" class="flex-1 overflow-y-auto scrollbar-w-2 p-2">
+                <!-- User items will be rendered here -->
+            </div>
+        </div>
+
+        <!-- User View: Chat Interface -->
+        <div id="chat-container" class="w-full md:w-2/3 flex flex-col">
+            <header class="p-4 border-b border-pink-200 flex items-center justify-between bg-white shadow-sm">
+                 <button id="back-to-list-btn" class="hidden text-pink-500 hover:text-pink-700 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                    </svg>
+                </button>
+                <h3 id="chat-header" class="text-lg font-semibold text-pink-700 flex-1 ml-4"></h3>
+                <span id="user-id-display" class="text-xs text-pink-500 px-2 py-1 bg-pink-200 rounded-full"></span>
+                <button id="logout-btn-user" class="px-3 py-1 bg-pink-200 rounded-lg text-sm text-pink-700 hover:bg-pink-300 transition-colors">Log Out</button>
+            </header>
+            <div id="messages" class="flex-1 overflow-y-auto p-4 space-y-4 scrollbar-w-2">
+                <!-- Messages will be rendered here -->
+            </div>
+            <div id="chat-form-container" class="p-4 border-t border-pink-200 bg-white">
+                <form id="message-form" class="flex space-x-2">
+                    <input type="text" id="message-input" placeholder="Type a message..." class="flex-1 px-4 py-3 rounded-full border border-pink-300 focus:ring-pink-500 focus:border-pink-500">
+                    <button type="submit" class="bg-pink-600 text-white p-3 rounded-full shadow-md hover:bg-pink-700 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
+                            <path d="M3.478 2.405a.75.75 0 0 0-.926.94l2.432 7.945a.75.75 0 0 0 .926.94 60.599 60.599 0 0 0 5.432 8.786.75.75 0 0 0 1.05.158l9.743-9.743a.75.75 0 0 0 0-1.06L7.544 2.247a.75.75 0 0 0-.94.926l2.432 7.945a60.599 60.599 0 0 0-5.432 8.786.75.75 0 0 0-1.05.158l-9.743 9.743a.75.75 0 0 0 0 1.06z" />
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Loading overlay -->
+    <div id="loading-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+        <div class="spinner"></div>
+    </div>
+
+    <!-- Firebase SDKs -->
     <script type="module">
-        // Your web app's Firebase configuration
+        // Global variables for Firebase config and App ID
         const firebaseConfig = {
-            apiKey: "AIzaSyCfFAoT_zRgFu5CY5xDnzcalnrPvNHD1Xg",
-            authDomain: "my-private-chat-app-b99aa.firebaseapp.com",
-            projectId: "my-private-chat-app-b99aa",
-            storageBucket: "my-private-chat-app-b99aa.appspot.com",
-            messagingSenderId: "454442482048",
-            appId: "1:454442482048:web:a198a9fe7054e225bb2965",
-            measurementId: "G-J583NVS01Z"
+          apiKey: "AIzaSyCfFAoT_zRgFu5CY5xDnzcalnrPvNHD1Xg",
+          authDomain: "my-private-chat-app-b99aa.firebaseapp.com",
+          projectId: "my-private-chat-app-b99aa",
+          storageBucket: "my-private-chat-app-b99aa.firebasestorage.app",
+          messagingSenderId: "454442482048",
+          appId: "1:454442482048:web:a198a9fe7054e225bb2965",
+          measurementId: "G-J583NVS01Z"
         };
+        const appId = 'default-app-id'; // This is a placeholder for the real Canvas app ID
 
-        // Import functions from the SDKs
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { 
-            getAuth, 
-            createUserWithEmailAndPassword, 
-            signInWithEmailAndPassword, 
-            signOut, 
-            onAuthStateChanged 
-        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-        import { 
-            getFirestore, 
-            collection, 
-            addDoc, 
-            query, 
-            orderBy, 
-            onSnapshot,
-            serverTimestamp
-        } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        // ** IMPORTANT **
+        // Replace 'YOUR_OWNER_ID_HERE' with your actual Firebase User UID
+        // You can get this by signing up on the app, copying the ID from the header,
+        // and pasting it here.
+        const OWNER_ID = 'eXuhGfVITxYgVy5gB55PdX5YCl62';
 
-        // Initialize Firebase
+        // Firestore & Auth imports
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, onSnapshot, query, addDoc, serverTimestamp, orderBy, getDocs, doc, setDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { setLogLevel } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Set Firebase debug log level
+        setLogLevel('debug');
+        
+        // UI Elements
+        const landingContainer = document.getElementById('landing-container');
+        const loginContainer = document.getElementById('login-container');
+        const signupContainer = document.getElementById('signup-container');
+        const appContainer = document.getElementById('app-container');
+        
+        const showLoginBtn = document.getElementById('show-login-btn');
+        const showSignupBtn = document.getElementById('show-signup-btn');
+        const backToLandingLogin = document.getElementById('back-to-landing-login');
+        const backToLandingSignup = document.getElementById('back-to-landing-signup');
+        
+        const loginForm = document.getElementById('login-form');
+        const loginEmail = document.getElementById('login-email');
+        const loginPassword = document.getElementById('login-password');
+        const loginFormBtn = document.getElementById('login-form-btn');
+        const loginStatus = document.getElementById('login-status');
+        
+        const signupForm = document.getElementById('signup-form');
+        const signupName = document.getElementById('signup-name');
+        const signupEmail = document.getElementById('signup-email');
+        const signupPassword = document.getElementById('signup-password');
+        const signupFormBtn = document.getElementById('signup-form-btn');
+        const signupStatus = document.getElementById('signup-status');
+        
+        const logoutBtnUser = document.getElementById('logout-btn-user');
+        const logoutBtnOwner = document.getElementById('logout-btn-owner');
+        const userIdDisplay = document.getElementById('user-id-display');
+        const ownerIdDisplay = document.getElementById('owner-id-display');
+        const userListContainer = document.getElementById('user-list-container');
+        const userList = document.getElementById('user-list');
+        const chatContainer = document.getElementById('chat-container');
+        const chatHeader = document.getElementById('chat-header');
+        const messagesContainer = document.getElementById('messages');
+        const messageForm = document.getElementById('message-form');
+        const messageInput = document.getElementById('message-input');
+        const backToListBtn = document.getElementById('back-to-list-btn');
+        const loadingOverlay = document.getElementById('loading-overlay');
+
+        // Firebase Initialization
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // DOM Elements
-        const authContainer = document.getElementById('auth-container');
-        const chatContainer = document.getElementById('chat-container');
-        const loginForm = document.getElementById('login-form');
-        const signupForm = document.getElementById('signup-form');
-        const showSignup = document.getElementById('show-signup');
-        const showLogin = document.getElementById('show-login');
-        const loginError = document.getElementById('login-error');
-        const signupError = document.getElementById('signup-error');
-        const logoutButton = document.getElementById('logout-button');
-        const messageForm = document.getElementById('message-form');
-        const messageInput = document.getElementById('message-input');
-        const chatMessages = document.getElementById('chat-messages');
+        let currentUser = null;
+        let unsubscribeMessages = null;
 
-        // --- Main Logic: Authentication State Listener ---
-        // This is the core fix. It listens for login/logout events and updates the UI.
-        onAuthStateChanged(auth, user => {
-            if (user) {
-                // User is signed in
-                authContainer.classList.add('hidden');
-                chatContainer.classList.remove('hidden');
-                listenForMessages(); // Start listening for messages only when logged in
-            } else {
-                // User is signed out
-                authContainer.classList.remove('hidden');
-                chatContainer.classList.add('hidden');
-                chatMessages.innerHTML = ''; // Clear messages on logout
-            }
-        });
+        // --- Functions ---
+        
+        function showMessage(element, text, isError = false) {
+            element.textContent = text;
+            element.className = `p-3 text-sm rounded-lg text-center font-semibold ${isError ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`;
+            element.classList.remove('hidden');
+        }
 
-        // --- Authentication Event Handlers ---
+        function showLoading() {
+            loadingOverlay.classList.remove('hidden');
+        }
 
-        // Toggle between login and signup forms
-        showSignup.addEventListener('click', (e) => {
-            e.preventDefault();
-            loginForm.classList.add('hidden');
-            signupForm.classList.remove('hidden');
-        });
+        function hideLoading() {
+            loadingOverlay.classList.add('hidden');
+        }
 
-        showLogin.addEventListener('click', (e) => {
-            e.preventDefault();
-            signupForm.classList.add('hidden');
-            loginForm.classList.remove('hidden');
-        });
-
-        // Handle Signup
-        signupForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('signup-email').value;
-            const password = document.getElementById('signup-password').value;
-            
-            signupError.classList.add('hidden');
-
+        async function createUserData(user, name) {
+            const userRef = doc(db, `artifacts/${appId}/users/${user.uid}`);
             try {
-                await createUserWithEmailAndPassword(auth, email, password);
-                // onAuthStateChanged will handle the UI switch automatically
-                signupForm.reset();
-            } catch (error) {
-                console.error("Signup Error:", error.message);
-                signupError.textContent = error.message;
-                signupError.classList.remove('hidden');
+                await setDoc(userRef, {
+                    name: name,
+                    email: user.email,
+                    createdAt: serverTimestamp(),
+                    isOwner: user.uid === OWNER_ID
+                }, { merge: true });
+                console.log("User data written to Firestore.");
+            } catch (e) {
+                console.error("Error creating user data:", e);
+                // We don't block login on this error, as the user can still proceed.
             }
-        });
-
-        // Handle Login
-        loginForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
-            
-            loginError.classList.add('hidden');
-            
-            try {
-                await signInWithEmailAndPassword(auth, email, password);
-                // onAuthStateChanged will handle the UI switch automatically
-                loginForm.reset();
-            } catch (error) {
-                console.error("Login Error:", error.message);
-                loginError.textContent = error.message;
-                loginError.classList.remove('hidden');
+        }
+        
+        function getDisplayName(user) {
+            if (user.uid === OWNER_ID) {
+                return 'James';
             }
-        });
+            return user.name || 'User';
+        }
+        
+        function renderMessages(messages) {
+            messagesContainer.innerHTML = '';
+            messages.forEach(msg => {
+                const messageElement = document.createElement('div');
+                messageElement.className = `max-w-xs md:max-w-md p-3 rounded-xl shadow-sm text-sm break-words ${msg.senderId === currentUser.uid ? 'bg-pink-600 text-white ml-auto rounded-br-none' : 'bg-pink-200 text-gray-800 rounded-bl-none'}`;
+                messageElement.textContent = msg.text;
+                messagesContainer.appendChild(messageElement);
+            });
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
 
-        // Handle Logout
-        logoutButton.addEventListener('click', async () => {
-            try {
-                await signOut(auth);
-                // onAuthStateChanged will handle the UI switch
-            } catch (error) {
-                console.error("Logout Error:", error);
-            }
-        });
-
-
-        // --- Firestore (Chat) Logic ---
-
-        // Send a message
-        messageForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const messageText = messageInput.value.trim();
-            
-            if (messageText && auth.currentUser) {
-                try {
-                    await addDoc(collection(db, "messages"), {
-                        text: messageText,
-                        createdAt: serverTimestamp(),
-                        uid: auth.currentUser.uid,
-                        email: auth.currentUser.email
-                    });
-                    messageInput.value = '';
-                    chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom
-                } catch (error) {
-                    console.error("Error sending message: ", error);
-                }
-            }
-        });
-
-        // Listen for new messages
-        let unsubscribeMessages = null; // To hold the listener function
-
-        function listenForMessages() {
-            // Unsubscribe from any previous listener to avoid duplicates
+        function listenForMessages(chatId) {
             if (unsubscribeMessages) {
-                unsubscribeMessages();
+                unsubscribeMessages(); // Unsubscribe from previous chat
             }
-
-            const q = query(collection(db, "messages"), orderBy("createdAt"));
+            const messagesRef = collection(db, `artifacts/${appId}/private_messages/${chatId}/messages`);
+            const q = query(messagesRef, orderBy('createdAt'));
+            unsubscribeMessages = onSnapshot(q, (snapshot) => {
+                const messages = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                renderMessages(messages);
+            }, (error) => {
+                console.error("Error listening to messages:", error);
+                // Display user-friendly error
+            });
+        }
+        
+        async function loadOwnerDashboard() {
+            userListContainer.classList.remove('hidden');
+            chatContainer.classList.add('hidden');
+            ownerIdDisplay.textContent = `ID: ${currentUser.uid}`;
             
-            unsubscribeMessages = onSnapshot(q, (querySnapshot) => {
-                chatMessages.innerHTML = ''; // Clear existing messages
-                querySnapshot.forEach((doc) => {
-                    const message = doc.data();
-                    const messageElement = document.createElement('div');
-                    
-                    // Determine if the message was sent or received
-                    const messageTypeClass = message.uid === auth.currentUser.uid ? 'sent' : 'received';
+            const usersRef = collection(db, `artifacts/${appId}/users`);
+            const q = query(usersRef, orderBy('createdAt'));
+            
+            onSnapshot(q, async (snapshot) => {
+                const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                console.log("Found users in database:", users); // <--- DEBUGGING LINE
+                userList.innerHTML = '';
+                
+                for (const user of users) {
+                    if (user.id === OWNER_ID) continue; // Skip the owner's own profile
 
-                    messageElement.classList.add('message', 'p-3', 'rounded-lg', 'shadow-sm', messageTypeClass);
-                    
-                    const senderEmail = document.createElement('div');
-                    senderEmail.classList.add('text-xs', 'font-bold', 'text-gray-500', 'mb-1');
-                    senderEmail.textContent = message.email;
-
-                    const messageText = document.createElement('div');
-                    messageText.textContent = message.text;
-
-                    messageElement.appendChild(senderEmail);
-                    messageElement.appendChild(messageText);
-                    chatMessages.appendChild(messageElement);
-                });
-                chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom
+                    const userItem = document.createElement('div');
+                    userItem.className = 'p-4 border-b border-pink-200 cursor-pointer hover:bg-pink-100 transition-colors rounded-lg flex justify-between items-center';
+                    userItem.innerHTML = `
+                        <div class="flex items-center space-x-3">
+                            <div class="flex-shrink-0 w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm">${getDisplayName(user)[0]}</div>
+                            <div>
+                                <p class="font-semibold text-pink-700">${getDisplayName(user)}</p>
+                                <p class="text-sm text-gray-500 truncate w-40">ID: ${user.id}</p>
+                            </div>
+                        </div>
+                    `;
+                    userItem.addEventListener('click', () => {
+                        // Switch to the chat view for this user
+                        chatContainer.classList.remove('hidden');
+                        userListContainer.classList.add('hidden');
+                        const chatId = currentUser.uid > user.id ? `${currentUser.uid}_${user.id}` : `${user.id}_${currentUser.uid}`;
+                        chatHeader.textContent = `Chat with ${getDisplayName(user)}`;
+                        userIdDisplay.textContent = `ID: ${user.id}`;
+                        listenForMessages(chatId);
+                    });
+                    userList.appendChild(userItem);
+                }
             });
         }
 
+        async function loadUserChat() {
+            userListContainer.classList.add('hidden');
+            chatContainer.classList.remove('hidden');
+            userIdDisplay.textContent = `ID: ${currentUser.uid}`;
+            chatHeader.textContent = `Your private chat with James`;
+
+            const chatId = currentUser.uid > OWNER_ID ? `${currentUser.uid}_${OWNER_ID}` : `${OWNER_ID}_${currentUser.uid}`;
+            listenForMessages(chatId);
+            
+            messageForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const text = messageInput.value.trim();
+                if (text === '') return;
+                
+                const messagesRef = collection(db, `artifacts/${appId}/private_messages/${chatId}/messages`);
+                try {
+                    await addDoc(messagesRef, {
+                        text,
+                        senderId: currentUser.uid,
+                        createdAt: serverTimestamp()
+                    });
+                    messageInput.value = '';
+                } catch (e) {
+                    console.error("Error sending message:", e);
+                    showMessage(loginStatus, "Error sending message.", true);
+                }
+            });
+        }
+        
+        // --- Event Listeners ---
+        
+        showLoginBtn.addEventListener('click', () => {
+            landingContainer.classList.add('hidden');
+            loginContainer.classList.remove('hidden');
+            signupContainer.classList.add('hidden');
+            loginEmail.value = '';
+            loginPassword.value = '';
+            loginStatus.classList.add('hidden');
+        });
+
+        showSignupBtn.addEventListener('click', () => {
+            landingContainer.classList.add('hidden');
+            loginContainer.classList.add('hidden');
+            signupContainer.classList.remove('hidden');
+            signupName.value = '';
+            signupEmail.value = '';
+            signupPassword.value = '';
+            signupStatus.classList.add('hidden');
+        });
+
+        backToLandingLogin.addEventListener('click', () => {
+            landingContainer.classList.remove('hidden');
+            loginContainer.classList.add('hidden');
+        });
+
+        backToLandingSignup.addEventListener('click', () => {
+            landingContainer.classList.remove('hidden');
+            signupContainer.classList.add('hidden');
+        });
+
+        loginFormBtn.addEventListener('click', async () => {
+            const email = loginEmail.value;
+            const password = loginPassword.value;
+            showLoading();
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                showMessage(loginStatus, "Logged in successfully!");
+            } catch (error) {
+                console.error("Login failed:", error.code, error.message);
+                showMessage(loginStatus, "Login failed. Please check your email and password.", true);
+            } finally {
+                hideLoading();
+            }
+        });
+
+        signupFormBtn.addEventListener('click', async () => {
+            const name = signupName.value.trim();
+            const email = signupEmail.value;
+            const password = signupPassword.value;
+            if (password.length < 6) {
+                showMessage(signupStatus, "Password must be at least 6 characters.", true);
+                return;
+            }
+            if (!name) {
+                showMessage(signupStatus, "Name is required.", true);
+                return;
+            }
+            showLoading();
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                await createUserData(userCredential.user, name);
+                showMessage(signupStatus, "Account created successfully! You can now log in.", false);
+                landingContainer.classList.add('hidden');
+                loginContainer.classList.remove('hidden');
+                signupContainer.classList.add('hidden');
+            } catch (error) {
+                console.error("Sign up failed:", error.code, error.message);
+                showMessage(signupStatus, "Sign up failed. A user with that email may already exist or the password is too weak.", true);
+            } finally {
+                hideLoading();
+            }
+        });
+
+        logoutBtnUser.addEventListener('click', async () => {
+            await signOut(auth);
+            showMessage(loginStatus, "Logged out successfully.");
+        });
+
+        logoutBtnOwner.addEventListener('click', async () => {
+            await signOut(auth);
+            showMessage(loginStatus, "Logged out successfully.");
+        });
+
+        backToListBtn.addEventListener('click', () => {
+             loadOwnerDashboard();
+        });
+
+        // --- Auth State Change Listener ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                
+                // Hide all auth containers
+                landingContainer.classList.add('hidden');
+                loginContainer.classList.add('hidden');
+                signupContainer.classList.add('hidden');
+
+                // Show the main app
+                appContainer.classList.remove('hidden');
+                
+                if (currentUser.uid === OWNER_ID) {
+                    await loadOwnerDashboard();
+                } else {
+                    await loadUserChat();
+                }
+            } else {
+                currentUser = null;
+                // Show initial landing page
+                landingContainer.classList.remove('hidden');
+                loginContainer.classList.add('hidden');
+                signupContainer.classList.add('hidden');
+                appContainer.classList.add('hidden');
+            }
+             hideLoading(); // Hide loading when auth state is determined
+        });
+
+        // Event listener for sending messages
+        messageForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = messageInput.value.trim();
+            if (text === '') return;
+            
+            const recipientId = (currentUser.uid === OWNER_ID) ? userIdDisplay.textContent.replace('ID: ', '') : OWNER_ID;
+            const chatId = currentUser.uid > recipientId ? `${currentUser.uid}_${recipientId}` : `${recipientId}_${currentUser.uid}`;
+            const messagesRef = collection(db, `artifacts/${appId}/private_messages/${chatId}/messages`);
+
+            try {
+                await addDoc(messagesRef, {
+                    text,
+                    senderId: currentUser.uid,
+                    createdAt: serverTimestamp()
+                });
+                messageInput.value = '';
+            } catch (e) {
+                console.error("Error sending message:", e);
+                showMessage(loginStatus, "Error sending message.", true);
+            }
+        });
+        
+        // Initial state
+        showLoading(); // Show loading when the page first loads
     </script>
 </body>
 </html>
-
