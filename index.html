@@ -212,9 +212,12 @@
                     const userItem = document.createElement('div');
                     userItem.className = 'p-4 border-b border-pink-200 cursor-pointer hover:bg-pink-100 transition-colors rounded-lg flex justify-between items-center';
                     userItem.innerHTML = `
-                        <div>
-                            <p class="font-semibold text-pink-700">User</p>
-                            <p class="text-sm text-gray-500 truncate w-40">ID: ${user.id}</p>
+                        <div class="flex items-center space-x-3">
+                            <div class="flex-shrink-0 w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm">U</div>
+                            <div>
+                                <p class="font-semibold text-pink-700">User</p>
+                                <p class="text-sm text-gray-500 truncate w-40">ID: ${user.id}</p>
+                            </div>
                         </div>
                     `;
                     userItem.addEventListener('click', () => {
