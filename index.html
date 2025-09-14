@@ -98,7 +98,7 @@
         <!-- User View: Chat Interface -->
         <div id="chat-container" class="w-full md:w-2/3 flex flex-col">
             <header class="p-4 border-b border-pink-200 flex items-center justify-between bg-white shadow-sm">
-                 <button id="back-to-list-btn" class="hidden md:block text-pink-500 hover:text-pink-700 transition-colors">
+                 <button id="back-to-list-btn" class="hidden text-pink-500 hover:text-pink-700 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                     </svg>
@@ -430,9 +430,13 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
+                
+                // Hide all auth containers
                 landingContainer.classList.add('hidden');
                 loginContainer.classList.add('hidden');
                 signupContainer.classList.add('hidden');
+
+                // Show the main app
                 appContainer.classList.remove('hidden');
                 
                 if (currentUser.uid === OWNER_ID) {
@@ -444,6 +448,7 @@
                 }
             } else {
                 currentUser = null;
+                // Show initial landing page
                 landingContainer.classList.remove('hidden');
                 loginContainer.classList.add('hidden');
                 signupContainer.classList.add('hidden');
