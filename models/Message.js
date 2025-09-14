@@ -1,18 +1,12 @@
 const mongoose = require('mongoose');
 
-const MessageSchema = new mongoose.Schema({
-    from: {
-        type: String, // Can be user ID or 'admin-james'
-        required: true
-    },
-    to: {
-        type: String, // Can be user ID or 'admin-james'
-        required: true
-    },
-    message: {
-        type: String,
-        required: true
-    }
-}, { timestamps: true }); // Timestamps automatically add createdAt and updatedAt
+const messageSchema = new mongoose.Schema({
+    senderId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    // Recipient is not required because a regular user's message is always to the admin
+    recipientId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, 
+    text: { type: String, required: true },
+    timestamp: { type: Date, default: Date.now }
+});
 
-module.exports = mongoose.model('Message', MessageSchema);
+module.exports = mongoose.model('Message', messageSchema);
+
