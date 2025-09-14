@@ -30,10 +30,8 @@ mongoose.connect(process.env.MONGO_URI)
 // --- API Routes ---
 app.use('/api/auth', require('./routes/auth'));
 
-// Protected route to get users (only for admin)
 app.get('/api/users', authMiddleware, async (req, res) => {
     try {
-        // Find all users that are not admins
         const users = await User.find({ isAdmin: false }).select('-password');
         res.json(users);
     } catch (err) {
@@ -42,49 +40,45 @@ app.get('/api/users', authMiddleware, async (req, res) => {
     }
 });
 
-// Route to get chat history
 app.get('/api/messages/:userId', authMiddleware, async (req, res) => {
     try {
         const currentUserId = req.user.id;
-        const otherUserId = req.params.userId;
+        let otherUserId = req.params.userId;
+        let adminId = null;
+
+        const admin = await User.findOne({ isAdmin: true });
+        if (!admin) {
+            return res.status(404).json({ msg: 'Admin account not found' });
+        }
+        adminId = admin._id;
 
         if (req.user.isAdmin) {
-             // Admin fetching chat with a specific user
-            const messages = await Message.find({
-                $or: [
-                    { senderId: currentUserId, recipientId: otherUserId },
-                    { senderId: otherUserId, recipientId: currentUserId }
-                ]
-            }).sort({ timestamp: 1 });
-            res.json(messages);
+             otherUserId = req.params.userId;
         } else {
-            // Regular user fetching chat with admin
-            const admin = await User.findOne({ isAdmin: true });
-            if (!admin) return res.json([]);
-            
-            const messages = await Message.find({
-                 $or: [
-                    { senderId: currentUserId, recipientId: admin._id },
-                    { senderId: admin._id, recipientId: currentUserId }
-                ]
-            }).sort({ timestamp: 1 });
-            res.json(messages);
+            otherUserId = adminId;
         }
+       
+        const messages = await Message.find({
+            $or: [
+                { senderId: currentUserId, recipientId: otherUserId },
+                { senderId: otherUserId, recipientId: currentUserId }
+            ]
+        }).sort({ timestamp: 1 });
+        
+        res.json({ messages, adminId: adminId.toString() });
+
     } catch (err) {
         console.error(err.message);
         res.status(500).send('Server Error');
     }
 });
 
-
 // --- Socket.IO Logic ---
 const onlineUsers = new Map();
 
 io.use((socket, next) => {
     const token = socket.handshake.auth.token;
-    if (!token) {
-        return next(new Error('Authentication error'));
-    }
+    if (!token) return next(new Error('Authentication error'));
     try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         socket.user = decoded.user;
@@ -98,7 +92,6 @@ io.on('connection', async (socket) => {
     console.log(`User connected: ${socket.user.username} (${socket.id})`);
     onlineUsers.set(socket.user.id, socket.id);
 
-    // Notify admin that a user is online
     const admin = await User.findOne({ isAdmin: true });
     if (admin) {
         const adminSocketId = onlineUsers.get(admin._id.toString());
@@ -107,11 +100,9 @@ io.on('connection', async (socket) => {
         }
     }
     
-    // Send the list of currently online users to the admin if they connect
     if(socket.user.isAdmin) {
         socket.emit('onlineUsers', Array.from(onlineUsers.keys()));
     }
-
 
     socket.on('sendMessage', async (msg) => {
         try {
@@ -119,31 +110,27 @@ io.on('connection', async (socket) => {
             const senderId = socket.user.id;
             let finalRecipientId = recipientId;
 
-            // If a regular user sends a message, it's always for the admin
             if (!socket.user.isAdmin) {
                 const adminUser = await User.findOne({ isAdmin: true });
-                if (!adminUser) return; // Should not happen
+                if (!adminUser) return;
                 finalRecipientId = adminUser._id;
             }
 
-            // Save message to database
-            const message = new Message({
-                senderId,
-                recipientId: finalRecipientId,
-                text,
-            });
-            await message.save();
+            const message = new Message({ senderId, recipientId: finalRecipientId, text });
+            const savedMessage = await message.save();
 
-            // Send message to recipient if they are online
+            const senderSocketId = onlineUsers.get(senderId.toString());
             const recipientSocketId = onlineUsers.get(finalRecipientId.toString());
-            if (recipientSocketId) {
-                io.to(recipientSocketId).emit('receiveMessage', {
-                    ...message.toObject()
-                });
+
+            if (senderSocketId) {
+                io.to(senderSocketId).emit('receiveMessage', savedMessage);
+            }
+            if (recipientSocketId && recipientSocketId !== senderSocketId) {
+                io.to(recipientSocketId).emit('receiveMessage', savedMessage);
             }
 
         } catch (error) {
-            console.error("Error saving or sending message:", error);
+            console.error("Error in sendMessage:", error);
         }
     });
 
@@ -151,7 +138,6 @@ io.on('connection', async (socket) => {
         console.log(`User disconnected: ${socket.user.username}`);
         onlineUsers.delete(socket.user.id);
         
-        // Notify admin that a user is offline
         const admin = await User.findOne({ isAdmin: true });
         if (admin) {
             const adminSocketId = onlineUsers.get(admin._id.toString());
@@ -161,7 +147,6 @@ io.on('connection', async (socket) => {
         }
     });
 });
-
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
