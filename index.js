@@ -42,41 +42,46 @@ app.get('/api/users', authMiddleware, async (req, res) => {
 
 app.get('/api/messages/:userId', authMiddleware, async (req, res) => {
     try {
-        const currentUserId = req.user.id;
-        const otherUserId = req.params.userId;
-        let adminId = null;
-        let messages = [];
-
+        const currentUserId = new mongoose.Types.ObjectId(req.user.id);
+        const otherUserIdParam = req.params.userId;
+        
         const admin = await User.findOne({ isAdmin: true });
-        if (admin) {
-            adminId = admin._id.toString();
-        } else {
-             // If there's no admin, there can be no history.
+        if (!admin) {
             return res.json({ messages: [], adminId: null });
         }
-        
+        const adminId = admin._id;
+
+        let query;
         if (req.user.isAdmin) {
-            messages = await Message.find({
+            // Admin is fetching history with a specific user
+            if (!mongoose.Types.ObjectId.isValid(otherUserIdParam)) {
+                return res.status(400).json({ msg: 'Invalid user ID format' });
+            }
+            const otherUserId = new mongoose.Types.ObjectId(otherUserIdParam);
+            query = {
                 $or: [
                     { senderId: currentUserId, recipientId: otherUserId },
                     { senderId: otherUserId, recipientId: currentUserId }
                 ]
-            }).sort({ timestamp: 1 });
+            };
         } else {
-            messages = await Message.find({
+            // User is fetching history with the admin
+            query = {
                  $or: [
                     { senderId: currentUserId, recipientId: adminId },
                     { senderId: adminId, recipientId: currentUserId }
                 ]
-            }).sort({ timestamp: 1 });
+            };
         }
-        res.json({ messages, adminId });
+        const messages = await Message.find(query).sort({ timestamp: 1 });
+        res.json({ messages, adminId: adminId.toString() });
 
     } catch (err) {
-        console.error(err.message);
+        console.error("Error in /api/messages:", err.message);
         res.status(500).send('Server Error');
     }
 });
+
 
 // --- Socket.IO Logic ---
 const onlineUsers = new Map();
@@ -112,8 +117,8 @@ io.on('connection', async (socket) => {
     socket.on('sendMessage', async (msg) => {
         try {
             const { recipientId, text } = msg;
-            const senderId = socket.user.id;
-            let finalRecipientId = recipientId;
+            const senderId = new mongoose.Types.ObjectId(socket.user.id);
+            let finalRecipientId;
 
             if (!socket.user.isAdmin) {
                 const adminUser = await User.findOne({ isAdmin: true });
@@ -121,10 +126,11 @@ io.on('connection', async (socket) => {
                     return io.to(socket.id).emit('messagingError', { error: 'Admin account not found. Cannot send message.' });
                 }
                 finalRecipientId = adminUser._id;
-            }
-
-            if (!finalRecipientId) {
-                 return io.to(socket.id).emit('messagingError', { error: 'No recipient selected.' });
+            } else {
+                if (!recipientId || !mongoose.Types.ObjectId.isValid(recipientId)) {
+                    return io.to(socket.id).emit('messagingError', { error: 'No recipient selected or invalid recipient ID.' });
+                }
+                finalRecipientId = new mongoose.Types.ObjectId(recipientId);
             }
 
             const message = new Message({ senderId, recipientId: finalRecipientId, text });
