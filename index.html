@@ -60,7 +60,12 @@
         <!-- User View: Chat Interface -->
         <div id="chat-container" class="w-full md:w-2/3 flex flex-col">
             <header class="p-4 border-b border-gray-200 flex items-center justify-between bg-white shadow-sm">
-                <h3 id="chat-header" class="text-lg font-semibold text-gray-800"></h3>
+                <button id="back-to-list-btn" class="text-gray-500 hover:text-gray-700 transition-colors md:hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                    </svg>
+                </button>
+                <h3 id="chat-header" class="text-lg font-semibold text-gray-800 flex-1 ml-4 md:ml-0"></h3>
                 <span id="user-id-display" class="text-xs text-gray-500 px-2 py-1 bg-gray-200 rounded-full"></span>
                 <button id="logout-btn-user" class="px-3 py-1 bg-gray-200 rounded-lg text-sm text-gray-700 hover:bg-gray-300 transition-colors">Log Out</button>
             </header>
@@ -129,7 +134,8 @@
         const messagesContainer = document.getElementById('messages');
         const messageForm = document.getElementById('message-form');
         const messageInput = document.getElementById('message-input');
-        
+        const backToListBtn = document.getElementById('back-to-list-btn');
+
         // Firebase Initialization
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
@@ -191,7 +197,8 @@
             userListContainer.classList.remove('hidden');
             chatContainer.classList.add('hidden');
             ownerIdDisplay.textContent = `ID: ${currentUser.uid}`;
-
+            backToListBtn.classList.add('hidden'); // Hide back button on desktop
+            
             const usersRef = collection(db, `artifacts/${appId}/users`);
             const q = query(usersRef, orderBy('createdAt'));
             
@@ -215,6 +222,7 @@
                         // Switch to the chat view for this user
                         chatContainer.classList.remove('hidden');
                         userListContainer.classList.add('hidden');
+                        backToListBtn.classList.remove('hidden'); // Show back button
                         const chatId = currentUser.uid > user.id ? `${currentUser.uid}_${user.id}` : `${user.id}_${currentUser.uid}`;
                         chatHeader.textContent = `Chat with User`;
                         userIdDisplay.textContent = `ID: ${user.id}`;
@@ -230,6 +238,7 @@
             chatContainer.classList.remove('hidden');
             userIdDisplay.textContent = `ID: ${currentUser.uid}`;
             chatHeader.textContent = 'Your private chat';
+            backToListBtn.classList.add('hidden'); // Hide back button for user view
 
             const chatId = currentUser.uid > OWNER_ID ? `${currentUser.uid}_${OWNER_ID}` : `${OWNER_ID}_${currentUser.uid}`;
             listenForMessages(chatId);
@@ -257,6 +266,10 @@
         // --- Event Listeners ---
         
         authForm.addEventListener('submit', (e) => e.preventDefault());
+        
+        backToListBtn.addEventListener('click', () => {
+             loadOwnerDashboard();
+        });
 
         loginBtn.addEventListener('click', async () => {
             const email = authEmail.value;
