@@ -21,7 +21,8 @@
             <div class="chat-area">
                 <div class="messages-box" id="messages-box">
                     <div class="chat-area-welcome">
-                        <h2 id="chat-title">Select a user to start chatting</h2>
+                        <h2 id="chat-title">Welcome to the Chat</h2>
+                        <p id="chat-subtitle">Select a user to start chatting.</p>
                     </div>
                 </div>
                 <div class="message-input-area" id="message-input-area" style="display: none;">
@@ -41,6 +42,7 @@
         const messageInputArea = document.getElementById('message-input-area');
         const messageInput = document.getElementById('message-input');
         const chatTitle = document.getElementById('chat-title');
+        const chatSubtitle = document.getElementById('chat-subtitle');
         
         let currentUser = null;
         let selectedUserId = null;
@@ -50,7 +52,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             const token = localStorage.getItem('token');
             if (!token) {
-                window.location.href = '/index.html';
+                window.location.href = `${window.location.origin}/index.html`;
                 return;
             }
             try {
@@ -62,10 +64,11 @@
                     adminPanel.style.display = 'block';
                     fetchUsers(token);
                 } else {
+                    // Non-admin users chat with the admin by default
                     chatTitle.textContent = "Chat with Admin";
+                    chatSubtitle.textContent = "Your messages are private and secure.";
                     messageInputArea.style.display = 'flex';
-                    selectedUserId = 'admin'; 
-                    fetchChatHistory(token);
+                    fetchChatHistoryForUser(token);
                 }
             } catch (e) {
                 console.error("Invalid token:", e);
@@ -77,15 +80,17 @@
             socket = io({ auth: { token } });
 
             socket.on('receiveMessage', (message) => {
-                const otherPartyId = currentUser.isAdmin ? selectedUserId : adminId;
-                if ((message.senderId === otherPartyId && message.recipientId === currentUser.id) || 
-                    (message.senderId === currentUser.id && message.recipientId === otherPartyId)) {
-                    displayMessage(message);
+                const isChattingWithSender = (currentUser.isAdmin && message.senderId === selectedUserId) || (!currentUser.isAdmin && message.senderId === adminId);
+                const isSenderInChat = (currentUser.isAdmin && message.recipientId === selectedUserId) || (!currentUser.isAdmin && message.recipientId === adminId);
+
+                // Only display the message if it belongs to the current conversation
+                if (message.senderId === currentUser.id || isChattingWithSender || isSenderInChat) {
+                     displayMessage(message);
                 }
             });
 
             socket.on('messagingError', ({ error }) => {
-                alert(`Error: ${error}`); // For debugging, shows clear errors
+                alert(`Error: ${error}`);
             });
 
             socket.on('userStatus', ({ userId, online }) => {
@@ -124,39 +129,61 @@
             li.classList.add('selected');
             selectedUserId = li.dataset.userId;
             chatTitle.textContent = `Chat with ${li.dataset.username}`;
+            chatSubtitle.style.display = 'none';
             messageInputArea.style.display = 'flex';
-            fetchChatHistory(localStorage.getItem('token'));
+            fetchChatHistoryForAdmin(localStorage.getItem('token'), selectedUserId);
         }
         
-        async function fetchChatHistory(token) {
-            if (!selectedUserId) return;
+        // --- NEW: Separate function for regular users ---
+        async function fetchChatHistoryForUser(token) {
             messagesBox.innerHTML = '<p class="info-text">Loading history...</p>';
             try {
-                const res = await fetch(`/api/messages/${selectedUserId}`, { headers: { 'x-auth-token': token } });
+                // This new route requires no user ID
+                const res = await fetch(`/api/messages`, { headers: { 'x-auth-token': token } });
                 if (!res.ok) throw new Error(`Server responded with status: ${res.status}`);
                 const response = await res.json();
-                const messages = response.messages;
-                if (!currentUser.isAdmin) adminId = response.adminId;
-                
-                messagesBox.innerHTML = ''; 
-                if (!messages || messages.length === 0) {
-                    const emptyState = document.createElement('div');
-                    emptyState.className = 'chat-area-welcome';
-                    emptyState.innerHTML = `<h2>This is the beginning of your conversation.</h2><p>Messages you send will appear here.</p>`;
-                    messagesBox.appendChild(emptyState);
-                } else {
-                    messages.forEach(displayMessage);
-                }
+                handleHistoryResponse(response);
             } catch (error) {
-                console.error("Failed to fetch chat history:", error);
-                messagesBox.innerHTML = `<div class="chat-area-welcome"><h2>Something went wrong.</h2><p>We couldn't load the message history. The admin account may not be configured correctly on the server.</p></div>`;
+                handleHistoryError(error);
             }
+        }
+        
+        // --- NEW: Separate function for admins ---
+        async function fetchChatHistoryForAdmin(token, userId) {
+            messagesBox.innerHTML = '<p class="info-text">Loading history...</p>';
+            try {
+                const res = await fetch(`/api/messages/${userId}`, { headers: { 'x-auth-token': token } });
+                 if (!res.ok) throw new Error(`Server responded with status: ${res.status}`);
+                const response = await res.json();
+                handleHistoryResponse(response);
+            } catch (error) {
+                handleHistoryError(error);
+            }
+        }
+
+        function handleHistoryResponse(response) {
+            const messages = response.messages;
+            adminId = response.adminId; // Store the admin ID for message checks
+            messagesBox.innerHTML = ''; 
+            if (!messages || messages.length === 0) {
+                const emptyState = document.createElement('div');
+                emptyState.className = 'chat-area-welcome';
+                emptyState.innerHTML = `<h2>This is the beginning of your conversation.</h2><p>Messages you send will appear here.</p>`;
+                messagesBox.appendChild(emptyState);
+            } else {
+                messages.forEach(displayMessage);
+            }
+        }
+
+        function handleHistoryError(error) {
+             console.error("Failed to fetch chat history:", error);
+             messagesBox.innerHTML = `<div class="chat-area-welcome"><h2>Something went wrong.</h2><p>We couldn't load the message history. The admin account may not be configured correctly on the server.</p></div>`;
         }
 
         function sendMessage() {
             const text = messageInput.value.trim();
             if (text && socket) {
-                const recipientId = currentUser.isAdmin ? selectedUserId : null;
+                const recipientId = currentUser.isAdmin ? selectedUserId : null; // User sends to null, server figures it out
                 socket.emit('sendMessage', { recipientId, text });
                 messageInput.value = '';
             }
@@ -165,17 +192,21 @@
         messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 
         function displayMessage(message) {
-            const welcomeBox = messagesBox.querySelector('.chat-area-welcome');
+            const welcomeBox = messagesBox.querySelector('.chat-area-welcome, .info-text');
             if (welcomeBox) welcomeBox.remove();
+
             const messageType = message.senderId === currentUser.id ? 'sent' : 'received';
             const msgDiv = document.createElement('div');
             msgDiv.classList.add('message', messageType);
+
             const textP = document.createElement('p');
             textP.classList.add('msg-text');
             textP.textContent = message.text;
+
             const timeSpan = document.createElement('span');
             timeSpan.classList.add('msg-time');
             timeSpan.textContent = new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
             msgDiv.appendChild(textP);
             msgDiv.appendChild(timeSpan);
             messagesBox.appendChild(msgDiv); 
@@ -184,7 +215,7 @@
 
         function logout() {
             localStorage.removeItem('token');
-            window.location.href = '/index.html';
+            window.location.href = `${window.location.origin}/index.html`;
         }
     </script>
 </body>
