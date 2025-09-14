@@ -1,134 +1,190 @@
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Chat Room</title>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="style.css">
-    </head>
-    <body>
-        <div class="chat-container">
-            <header class="chat-header">
-                <h1 id="welcome-title">Chat</h1>
-                <button onclick="logout()" class="btn btn-logout">Logout</button>
-            </header>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="chat-container">
+        <header class="chat-header">
+            <h1 id="welcome-title">Chat</h1>
+            <button onclick="logout()" class="btn btn-logout">Logout</button>
+        </header>
 
-            <div class="main-layout">
-                <!-- Admin View: User List -->
-                <div id="admin-panel" class="admin-panel">
-                    <h2>Users</h2>
-                    <ul id="user-list"></ul>
+        <div class="main-layout">
+            <!-- Admin View: User List -->
+            <div id="admin-panel" class="admin-panel">
+                <h2>Users</h2>
+                <ul id="user-list"></ul>
+            </div>
+
+            <!-- Main Chat Area -->
+            <div class="chat-area">
+                <div class="chat-area-welcome" id="chat-welcome">
+                    <h2>Select a conversation</h2>
+                    <p>Click on a user from the list to start chatting.</p>
                 </div>
-
-                <!-- Main Chat Area -->
-                <div class="chat-area">
-                    <div id="messages" class="messages-box"></div>
-                    <div class="message-input-area">
-                        <input type="text" id="message-input" placeholder="Type a message..." class="input-field">
-                        <button id="send-button" class="btn">Send</button>
-                    </div>
+                <div class="messages-box" id="messages"></div>
+                <div class="message-input-area" id="input-area">
+                    <input type="text" id="message-input" placeholder="Type a message..." class="input-field">
+                    <button id="send-button" class="btn">Send</button>
                 </div>
             </div>
         </div>
+    </div>
 
-        <script src="/socket.io/socket.io.js"></script>
-        <script>
-            const token = localStorage.getItem('token');
-            if (!token) window.location.href = '/';
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) window.location.href = '/';
 
-            // Decode JWT to get user info
-            const payload = JSON.parse(atob(token.split('.')[1]));
-            const currentUser = payload.user;
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        const currentUser = payload.user;
 
-            document.getElementById('welcome-title').textContent = `Welcome, ${currentUser.username}`;
-            const adminPanel = document.getElementById('admin-panel');
-            const userList = document.getElementById('user-list');
+        document.getElementById('welcome-title').textContent = `Welcome, ${currentUser.username}`;
+        
+        const adminPanel = document.getElementById('admin-panel');
+        const userList = document.getElementById('user-list');
+        const messagesBox = document.getElementById('messages');
+        const messageInput = document.getElementById('message-input');
+        const sendButton = document.getElementById('send-button');
+        const chatWelcome = document.getElementById('chat-welcome');
+        const inputArea = document.getElementById('input-area');
 
-            let selectedUserId = null; // For admin to select a user to chat with
-            const adminId = 'admin-james'; // Static ID for James
+        let selectedUserId = null;
+        const adminId = 'admin-james';
+        let onlineUsers = [];
 
-            if (currentUser.isAdmin) {
-                document.title = "Admin Dashboard";
-                adminPanel.style.display = 'block';
-                fetchUsers();
-            } else {
-                selectedUserId = adminId; // Regular users can only talk to admin
-                adminPanel.style.display = 'none';
-            }
+        // Determine current user ID for sockets and API calls
+        const currentUserId = currentUser.isAdmin ? adminId : currentUser.id;
+
+        // Connect to Socket.IO server
+        const socket = io({ query: { userId: currentUserId } });
+
+        // ---- Main Setup ----
+        if (currentUser.isAdmin) {
+            document.title = "Admin Dashboard";
+            adminPanel.style.display = 'block';
+            fetchUsers();
+            inputArea.style.display = 'none'; // Hide input until a user is selected
+        } else {
+            selectedUserId = adminId;
+            adminPanel.style.display = 'none';
+            chatWelcome.style.display = 'none';
+            loadChatHistory(currentUser.id);
+        }
+        
+        // ---- Functions ----
+        async function fetchUsers() {
+            const response = await fetch('/api/users', { 
+                headers: { 'x-auth-token': token } 
+            });
+            const users = await response.json();
+            userList.innerHTML = '';
+            users.forEach(user => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <span>${user.username}</span>
+                    <span class="status-dot" id="status-${user._id}"></span>
+                `;
+                li.dataset.userId = user._id;
+
+                li.onclick = () => {
+                    if (selectedUserId === user._id) return;
+                    selectedUserId = user._id;
+                    document.querySelectorAll('#user-list li').forEach(item => item.classList.remove('selected'));
+                    li.classList.add('selected');
+                    messagesBox.innerHTML = '';
+                    chatWelcome.style.display = 'none';
+                    inputArea.style.display = 'flex';
+                    loadChatHistory(user._id);
+                };
+                userList.appendChild(li);
+            });
+            updateOnlineStatus();
+        }
+        
+        async function loadChatHistory(userId) {
+            const response = await fetch(`/api/messages/${userId}`);
+            const messages = await response.json();
+            messagesBox.innerHTML = '';
+            messages.forEach(msg => appendMessage(msg));
+        }
+
+        function appendMessage(msg) {
+            const { message, from, createdAt } = msg;
+            const messageElement = document.createElement('div');
+            const time = new Date(createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
             
-            // Connect to Socket.IO server
-            const socket = io({ query: { userId: currentUser.isAdmin ? adminId : currentUser.id } });
+            messageElement.innerHTML = `
+                <p class="msg-text">${message}</p>
+                <span class="msg-time">${time}</span>
+            `;
             
-            const messagesBox = document.getElementById('messages');
-            const messageInput = document.getElementById('message-input');
-            const sendButton = document.getElementById('send-button');
-
-            async function fetchUsers() {
-                const response = await fetch('/api/users', { headers: { 'Authorization': `Bearer ${token}` } });
-                const users = await response.json();
-                userList.innerHTML = '';
-                users.forEach(user => {
-                    const li = document.createElement('li');
-                    li.textContent = user.username;
-                    li.dataset.userId = user._id;
-                    li.onclick = () => {
-                        selectedUserId = user._id;
-                        document.querySelectorAll('#user-list li').forEach(item => item.classList.remove('selected'));
-                        li.classList.add('selected');
-                        messagesBox.innerHTML = ''; // Clear messages when switching user
-                        document.querySelector('.chat-area').style.display = 'flex';
-                    };
-                    userList.appendChild(li);
-                });
-            }
-
-            function sendMessage() {
-                const message = messageInput.value;
-                if (message.trim() === '' || !selectedUserId) return;
+            // Logic to determine if message was sent or received
+            const messageType = (currentUser.isAdmin && from !== adminId) || (!currentUser.isAdmin && from === adminId) 
+                ? 'received' 
+                : 'sent';
                 
-                const senderId = currentUser.isAdmin ? adminId : currentUser.id;
+            messageElement.classList.add('message', messageType);
+            messagesBox.appendChild(messageElement);
+            messagesBox.scrollTop = messagesBox.scrollHeight;
+        }
 
-                socket.emit('sendMessage', {
-                    senderId: senderId,
-                    receiverId: selectedUserId,
-                    message: message
-                });
-                
-                appendMessage(message, 'sent');
-                messageInput.value = '';
-            }
+        function sendMessage() {
+            const message = messageInput.value;
+            if (message.trim() === '' || !selectedUserId) return;
 
-            socket.on('receiveMessage', ({ senderId, message }) => {
-                // Admin sees all messages, regular user only sees messages from admin
-                if(currentUser.isAdmin || senderId === adminId) {
-                     appendMessage(message, 'received');
+            socket.emit('sendMessage', {
+                senderId: currentUserId,
+                receiverId: selectedUserId,
+                message: message
+            });
+            messageInput.value = '';
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            socket.disconnect();
+            window.location.href = '/';
+        }
+        
+        function updateOnlineStatus() {
+            document.querySelectorAll('#user-list li').forEach(item => {
+                const userId = item.dataset.userId;
+                const statusDot = document.getElementById(`status-${userId}`);
+                if (onlineUsers.includes(userId)) {
+                    statusDot.classList.add('online');
+                } else {
+                    statusDot.classList.remove('online');
                 }
             });
+        }
 
-            function appendMessage(message, type) {
-                const messageElement = document.createElement('div');
-                messageElement.textContent = message;
-                messageElement.classList.add('message', type);
-                messagesBox.appendChild(messageElement);
-                messagesBox.scrollTop = messagesBox.scrollHeight;
-            }
-
-            function logout() {
-                localStorage.removeItem('token');
-                window.location.href = '/';
-            }
-            
-            sendButton.addEventListener('click', sendMessage);
-            messageInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') sendMessage();
-            });
-
-             if(currentUser.isAdmin) {
-                document.querySelector('.chat-area').style.display = 'none';
+        // ---- Socket.IO Event Listeners ----
+        socket.on('receiveMessage', (msg) => {
+            const relevantToCurrentUser = (msg.from === selectedUserId) || (msg.to === selectedUserId);
+             if (relevantToCurrentUser) {
+                appendMessage(msg);
              }
+        });
 
-        </script>
-    </body>
-    </html>
-    
+        socket.on('updateOnlineUsers', (users) => {
+            onlineUsers = users;
+            if(currentUser.isAdmin) {
+                updateOnlineStatus();
+            }
+        });
+        
+        // ---- Event Listeners ----
+        sendButton.addEventListener('click', sendMessage);
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+    </script>
+</body>
+</html>
+
