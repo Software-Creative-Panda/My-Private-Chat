@@ -14,15 +14,12 @@
             <button onclick="logout()" class="btn btn-logout">Logout</button>
         </header>
         <div class="main-layout">
-            <!-- Admin Panel (will be hidden for regular users) -->
             <div id="admin-panel" class="admin-panel" style="display: none;">
                 <h2>Users</h2>
                 <ul id="user-list"></ul>
             </div>
-            <!-- Chat Area -->
             <div class="chat-area">
                 <div class="messages-box" id="messages-box">
-                    <!-- Initial welcome message -->
                     <div class="chat-area-welcome">
                         <h2 id="chat-title">Select a user to start chatting</h2>
                     </div>
@@ -37,7 +34,6 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // --- DOM Elements ---
         const welcomeMessage = document.getElementById('welcome-message');
         const adminPanel = document.getElementById('admin-panel');
         const userList = document.getElementById('user-list');
@@ -46,39 +42,31 @@
         const messageInput = document.getElementById('message-input');
         const chatTitle = document.getElementById('chat-title');
         
-        // --- State ---
         let currentUser = null;
         let selectedUserId = null;
         let adminId = null;
         let socket;
         
-        // --- Authentication & Initialization ---
         document.addEventListener('DOMContentLoaded', () => {
             const token = localStorage.getItem('token');
             if (!token) {
-                window.location.href = '/';
+                window.location.href = '/index.html';
                 return;
             }
-
             try {
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 currentUser = payload.user;
-                
                 welcomeMessage.textContent = `Welcome, ${currentUser.username}`;
                 setupSocket(token);
-
                 if (currentUser.isAdmin) {
                     adminPanel.style.display = 'block';
                     fetchUsers(token);
                 } else {
                     chatTitle.textContent = "Chat with Admin";
                     messageInputArea.style.display = 'flex';
-                    // We need the admin's ID to fetch history.
-                    // We'll pass a placeholder and the server will know what to do.
                     selectedUserId = 'admin'; 
                     fetchChatHistory(token);
                 }
-
             } catch (e) {
                 console.error("Invalid token:", e);
                 logout();
@@ -90,39 +78,34 @@
 
             socket.on('receiveMessage', (message) => {
                 const otherPartyId = currentUser.isAdmin ? selectedUserId : adminId;
-
-                // Only display the message if it's part of the currently active chat
                 if ((message.senderId === otherPartyId && message.recipientId === currentUser.id) || 
                     (message.senderId === currentUser.id && message.recipientId === otherPartyId)) {
                     displayMessage(message);
                 }
             });
 
-            socket.on('userStatus', ({ userId, online }) => {
-                const userElement = document.querySelector(`li[data-user-id="${userId}"] .status-dot`);
-                if (userElement) {
-                    userElement.classList.toggle('online', online);
-                }
+            socket.on('messagingError', ({ error }) => {
+                alert(`Error: ${error}`); // For debugging, shows clear errors
             });
 
-             socket.on('onlineUsers', (onlineUserIds) => {
-                const userElements = userList.querySelectorAll('li');
-                userElements.forEach(li => {
+            socket.on('userStatus', ({ userId, online }) => {
+                const userElement = document.querySelector(`li[data-user-id="${userId}"] .status-dot`);
+                if (userElement) userElement.classList.toggle('online', online);
+            });
+
+            socket.on('onlineUsers', (onlineUserIds) => {
+                userList.querySelectorAll('li').forEach(li => {
                     const dot = li.querySelector('.status-dot');
-                    if (dot) {
-                        dot.classList.toggle('online', onlineUserIds.includes(li.dataset.userId));
-                    }
+                    if (dot) dot.classList.toggle('online', onlineUserIds.includes(li.dataset.userId));
                 });
             });
         }
 
-        // --- Core Functions ---
         async function fetchUsers(token) {
             try {
                 const res = await fetch('/api/users', { headers: { 'x-auth-token': token } });
                 if (!res.ok) throw new Error('Failed to fetch users');
                 const users = await res.json();
-                
                 userList.innerHTML = '';
                 users.forEach(user => {
                     const li = document.createElement('li');
@@ -132,20 +115,16 @@
                     li.onclick = () => selectUser(li);
                     userList.appendChild(li);
                 });
-            } catch (error) {
-                console.error(error);
-            }
+            } catch (error) { console.error(error); }
         }
         
         function selectUser(li) {
             const currentSelected = document.querySelector('#user-list li.selected');
             if (currentSelected) currentSelected.classList.remove('selected');
-            
             li.classList.add('selected');
             selectedUserId = li.dataset.userId;
             chatTitle.textContent = `Chat with ${li.dataset.username}`;
             messageInputArea.style.display = 'flex';
-            
             fetchChatHistory(localStorage.getItem('token'));
         }
         
@@ -153,18 +132,11 @@
             if (!selectedUserId) return;
             messagesBox.innerHTML = '<p class="info-text">Loading history...</p>';
             try {
-                const res = await fetch(`/api/messages/${selectedUserId}`, {
-                    headers: { 'x-auth-token': token }
-                });
-                 if (!res.ok) {
-                    throw new Error(`Server responded with status: ${res.status}`);
-                }
+                const res = await fetch(`/api/messages/${selectedUserId}`, { headers: { 'x-auth-token': token } });
+                if (!res.ok) throw new Error(`Server responded with status: ${res.status}`);
                 const response = await res.json();
                 const messages = response.messages;
-                
-                if (!currentUser.isAdmin) {
-                    adminId = response.adminId;
-                }
+                if (!currentUser.isAdmin) adminId = response.adminId;
                 
                 messagesBox.innerHTML = ''; 
                 if (!messages || messages.length === 0) {
@@ -177,7 +149,7 @@
                 }
             } catch (error) {
                 console.error("Failed to fetch chat history:", error);
-                messagesBox.innerHTML = '<p class="error-text">Could not load history.</p>';
+                messagesBox.innerHTML = `<div class="chat-area-welcome"><h2>Something went wrong.</h2><p>We couldn't load the message history. The admin account may not be configured correctly on the server.</p></div>`;
             }
         }
 
@@ -190,39 +162,29 @@
             }
         }
 
-        messageInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') sendMessage();
-        });
+        messageInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') sendMessage(); });
 
         function displayMessage(message) {
             const welcomeBox = messagesBox.querySelector('.chat-area-welcome');
             if (welcomeBox) welcomeBox.remove();
-            
             const messageType = message.senderId === currentUser.id ? 'sent' : 'received';
-
             const msgDiv = document.createElement('div');
             msgDiv.classList.add('message', messageType);
-
             const textP = document.createElement('p');
             textP.classList.add('msg-text');
             textP.textContent = message.text;
-            
             const timeSpan = document.createElement('span');
             timeSpan.classList.add('msg-time');
             timeSpan.textContent = new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-
             msgDiv.appendChild(textP);
             msgDiv.appendChild(timeSpan);
-            
-            // This was the line with the typo ("msgiv" instead of "msgDiv")
             messagesBox.appendChild(msgDiv); 
-            
             messagesBox.scrollTop = messagesBox.scrollHeight;
         }
 
         function logout() {
             localStorage.removeItem('token');
-            window.location.href = '/';
+            window.location.href = '/index.html';
         }
     </script>
 </body>
