@@ -400,7 +400,12 @@
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 await createUserData(userCredential.user, name);
+                
+                // Immediately sign out to prevent the automatic login and flash
+                await signOut(auth);
+                
                 showMessage(signupStatus, "Account created successfully! You can now log in.", false);
+                // Redirect cleanly to the login container
                 landingContainer.classList.add('hidden');
                 loginContainer.classList.remove('hidden');
                 signupContainer.classList.add('hidden');
