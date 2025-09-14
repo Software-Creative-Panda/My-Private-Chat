@@ -1,0 +1,212 @@
+    :root {
+        --primary-color: #3498db;
+        --light-bg: #ecf0f1;
+        --dark-text: #2c3e50;
+        --light-text: #ffffff;
+        --border-color: #bdc3c7;
+        --sent-msg-bg: #3498db;
+        --received-msg-bg: #e5e5ea;
+    }
+
+    body {
+        font-family: 'Inter', sans-serif;
+        margin: 0;
+        background-color: var(--light-bg);
+        color: var(--dark-text);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+    }
+
+    /* --- Auth Page --- */
+    .auth-container {
+        width: 100%;
+        max-width: 400px;
+        padding: 20px;
+    }
+
+    .auth-box {
+        background: var(--light-text);
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        text-align: center;
+    }
+
+    .title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin-bottom: 8px;
+    }
+
+    .subtitle {
+        color: #7f8c8d;
+        margin-bottom: 30px;
+    }
+
+    .form-title {
+        font-size: 1.5rem;
+        margin-top: 20px;
+        margin-bottom: 15px;
+        color: var(--primary-color);
+    }
+    
+    #login-form {
+        margin-top: 30px;
+    }
+
+    .input-field {
+        width: 100%;
+        padding: 12px 15px;
+        margin-bottom: 15px;
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        box-sizing: border-box;
+        font-size: 1rem;
+    }
+
+    .btn {
+        width: 100%;
+        padding: 12px 15px;
+        border: none;
+        background-color: var(--primary-color);
+        color: var(--light-text);
+        border-radius: 8px;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+
+    .btn:hover {
+        background-color: #2980b9;
+    }
+
+    .message-area {
+        margin-top: 20px;
+        font-weight: 500;
+    }
+
+    /* --- Chat Page --- */
+    .chat-container {
+        width: 95%;
+        max-width: 1000px;
+        height: 90vh;
+        background: var(--light-text);
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .chat-header {
+        padding: 20px;
+        border-bottom: 1px solid var(--border-color);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .chat-header h1 {
+        margin: 0;
+        font-size: 1.5rem;
+    }
+
+    .btn-logout {
+        width: auto;
+        padding: 8px 15px;
+    }
+
+    .main-layout {
+        display: flex;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .admin-panel {
+        width: 250px;
+        border-right: 1px solid var(--border-color);
+        padding: 20px;
+        overflow-y: auto;
+    }
+
+    .admin-panel h2 {
+        margin-top: 0;
+    }
+
+    #user-list {
+        list-style: none;
+        padding: 0;
+    }
+
+    #user-list li {
+        padding: 10px;
+        cursor: pointer;
+        border-radius: 8px;
+        margin-bottom: 5px;
+    }
+
+    #user-list li:hover {
+        background-color: var(--light-bg);
+    }
+    
+    #user-list li.selected {
+        background-color: var(--primary-color);
+        color: var(--light-text);
+    }
+
+    .chat-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 20px;
+    }
+
+    .messages-box {
+        flex: 1;
+        overflow-y: auto;
+        margin-bottom: 15px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .message {
+        padding: 10px 15px;
+        border-radius: 18px;
+        max-width: 70%;
+        word-wrap: break-word;
+    }
+
+    .message.sent {
+        background-color: var(--sent-msg-bg);
+        color: var(--light-text);
+        align-self: flex-end;
+        border-bottom-right-radius: 4px;
+    }
+
+    .message.received {
+        background-color: var(--received-msg-bg);
+        color: var(--dark-text);
+        align-self: flex-start;
+        border-bottom-left-radius: 4px;
+    }
+    
+    .message-input-area {
+        display: flex;
+    }
+
+    .message-input-area .input-field {
+        flex: 1;
+        margin-bottom: 0;
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+    }
+
+    .message-input-area .btn {
+        width: auto;
+        border-top-left-radius: 0;
+        border-bottom-left-radius: 0;
+    }
+    
