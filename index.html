@@ -41,6 +41,9 @@
         <div id="status-message" class="hidden p-3 text-sm rounded-lg text-center font-semibold transition-all duration-300"></div>
         <form id="auth-form" class="space-y-4">
             <div>
+                <input type="text" id="auth-name" placeholder="Name" class="w-full px-4 py-3 rounded-lg border border-pink-200 focus:ring-pink-500 focus:border-pink-500 transition-colors duration-200" required>
+            </div>
+            <div>
                 <input type="email" id="auth-email" placeholder="Email" class="w-full px-4 py-3 rounded-lg border border-pink-200 focus:ring-pink-500 focus:border-pink-500 transition-colors duration-200">
             </div>
             <div>
@@ -133,6 +136,7 @@
         const authContainer = document.getElementById('auth-container');
         const appContainer = document.getElementById('app-container');
         const authForm = document.getElementById('auth-form');
+        const authName = document.getElementById('auth-name');
         const authEmail = document.getElementById('auth-email');
         const authPassword = document.getElementById('auth-password');
         const statusMessage = document.getElementById('status-message');
@@ -176,10 +180,11 @@
             loadingOverlay.classList.add('hidden');
         }
 
-        async function createUserData(user) {
+        async function createUserData(user, name) {
             const userRef = doc(db, `artifacts/${appId}/users/${user.uid}`);
             try {
                 await setDoc(userRef, {
+                    name: name,
                     email: user.email,
                     createdAt: serverTimestamp(),
                     isOwner: user.uid === OWNER_ID
@@ -189,6 +194,13 @@
                 console.error("Error creating user data:", e);
                 // We don't block login on this error, as the user can still proceed.
             }
+        }
+        
+        function getDisplayName(user) {
+            if (user.uid === OWNER_ID) {
+                return 'James';
+            }
+            return user.name || 'User';
         }
 
         function renderMessages(messages) {
@@ -237,9 +249,9 @@
                     userItem.className = 'p-4 border-b border-pink-200 cursor-pointer hover:bg-pink-100 transition-colors rounded-lg flex justify-between items-center';
                     userItem.innerHTML = `
                         <div class="flex items-center space-x-3">
-                            <div class="flex-shrink-0 w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm">U</div>
+                            <div class="flex-shrink-0 w-8 h-8 bg-pink-500 rounded-full flex items-center justify-center text-white font-bold text-sm">${getDisplayName(user)[0]}</div>
                             <div>
-                                <p class="font-semibold text-pink-700">User</p>
+                                <p class="font-semibold text-pink-700">${getDisplayName(user)}</p>
                                 <p class="text-sm text-gray-500 truncate w-40">ID: ${user.id}</p>
                             </div>
                         </div>
@@ -249,7 +261,7 @@
                         chatContainer.classList.remove('hidden');
                         userListContainer.classList.add('hidden');
                         const chatId = currentUser.uid > user.id ? `${currentUser.uid}_${user.id}` : `${user.id}_${currentUser.uid}`;
-                        chatHeader.textContent = `Chat with User`;
+                        chatHeader.textContent = `Chat with ${getDisplayName(user)}`;
                         userIdDisplay.textContent = `ID: ${user.id}`;
                         listenForMessages(chatId);
                     });
@@ -262,7 +274,7 @@
             userListContainer.classList.add('hidden');
             chatContainer.classList.remove('hidden');
             userIdDisplay.textContent = `ID: ${currentUser.uid}`;
-            chatHeader.textContent = 'Your private chat';
+            chatHeader.textContent = `Your private chat`;
 
             const chatId = currentUser.uid > OWNER_ID ? `${currentUser.uid}_${OWNER_ID}` : `${OWNER_ID}_${currentUser.uid}`;
             listenForMessages(chatId);
@@ -311,16 +323,21 @@
         });
 
         signupBtn.addEventListener('click', async () => {
+            const name = authName.value.trim();
             const email = authEmail.value;
             const password = authPassword.value;
             if (password.length < 6) {
                 showMessage("Password must be at least 6 characters.", true);
                 return;
             }
+            if (!name) {
+                showMessage("Name is required.", true);
+                return;
+            }
             showLoading();
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                await createUserData(userCredential.user);
+                await createUserData(userCredential.user, name);
                 showMessage("Account created successfully! You can now log in.");
             } catch (error) {
                 console.error("Sign up failed:", error.code, error.message);
