@@ -1,79 +1,118 @@
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Private Chat - Login</title>
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
-        <link rel="stylesheet" href="style.css">
-    </head>
-    <body>
-        <div class="auth-container">
-            <div class="auth-box">
-                <h1 class="title">Welcome</h1>
-                <p class="subtitle">Register or sign in to chat with James</p>
-
-                <div id="register-form">
-                    <h2 class="form-title">Register</h2>
-                    <input type="text" id="reg-username" placeholder="Username" class="input-field">
-                    <input type="password" id="reg-password" placeholder="Password" class="input-field">
-                    <button onclick="handleRegister()" class="btn">Register</button>
-                </div>
-
-                <div id="login-form">
-                    <h2 class="form-title">Login</h2>
-                    <input type="text" id="login-username" placeholder="Username" class="input-field">
-                    <input type="password" id="login-password" placeholder="Password" class="input-field">
-                    <button onclick="handleLogin()" class="btn">Login</button>
-                </div>
-                <p id="message-area" class="message-area"></p>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-box">
+            <h1 class="title">Welcome</h1>
+            <p class="subtitle">Please log in or register to continue</p>
+            
+            <div class="auth-tabs">
+                <button class="tab-btn active" onclick="showForm('login')">Login</button>
+                <button class="tab-btn" onclick="showForm('register')">Register</button>
             </div>
+            
+            <!-- Login Form -->
+            <div id="login-form" class="form-content active">
+                <input type="text" id="login-username" placeholder="Username" class="input-field">
+                <input type="password" id="login-password" placeholder="Password" class="input-field">
+                <button onclick="login()" class="btn">Login</button>
+            </div>
+            
+            <!-- Register Form -->
+            <div id="register-form" class="form-content">
+                <input type="text" id="reg-username" placeholder="Username" class="input-field">
+                <input type="password" id="reg-password" placeholder="Password" class="input-field">
+                <button onclick="register()" class="btn">Register</button>
+            </div>
+            
+            <p id="message-area" class="message-area"></p>
         </div>
-
-        <script>
-            const messageArea = document.getElementById('message-area');
-
-            async function handleRegister() {
-                const username = document.getElementById('reg-username').value;
-                const password = document.getElementById('reg-password').value;
-                messageArea.textContent = '';
-                try {
-                    const response = await fetch('/api/auth/register', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username, password })
-                    });
-                    const data = await response.json();
-                    if (!response.ok) throw new Error(data.msg || 'Registration failed');
-                    messageArea.textContent = 'Registration successful! Please log in.';
-                    messageArea.style.color = '#2ecc71';
-                } catch (error) {
-                    messageArea.textContent = error.message;
-                    messageArea.style.color = '#e74c3c';
-                }
-            }
-
-            async function handleLogin() {
-                const username = document.getElementById('login-username').value;
-                const password = document.getElementById('login-password').value;
-                messageArea.textContent = '';
-                try {
-                    const response = await fetch('/api/auth/login', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ username, password })
-                    });
-                    const data = await response.json();
-                    if (!response.ok) throw new Error(data.msg || 'Login failed');
-                    
-                    localStorage.setItem('token', data.token);
-                    window.location.href = '/chat.html'; // Redirect to chat page
-                } catch (error) {
-                    messageArea.textContent = error.message;
-                    messageArea.style.color = '#e74c3c';
-                }
-            }
-        </script>
-    </body>
-    </html>
+    </div>
     
+    <script>
+        const loginForm = document.getElementById('login-form');
+        const registerForm = document.getElementById('register-form');
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const messageArea = document.getElementById('message-area');
+
+        // Redirect if already logged in
+        if (localStorage.getItem('token')) {
+            window.location.href = '/chat.html';
+        }
+
+        function showForm(formName) {
+            if (formName === 'login') {
+                loginForm.classList.add('active');
+                registerForm.classList.remove('active');
+                tabButtons[0].classList.add('active');
+                tabButtons[1].classList.remove('active');
+            } else {
+                loginForm.classList.remove('active');
+                registerForm.classList.add('active');
+                tabButtons[0].classList.remove('active');
+                tabButtons[1].classList.add('active');
+            }
+            messageArea.textContent = ''; // Clear messages on tab switch
+        }
+
+        async function register() {
+            const username = document.getElementById('reg-username').value;
+            const password = document.getElementById('reg-password').value;
+            
+            try {
+                const response = await fetch('/api/auth/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    messageArea.style.color = 'green';
+                    messageArea.textContent = 'Registration successful! Please log in.';
+                    showForm('login'); // Switch to login form automatically
+                } else {
+                    messageArea.style.color = 'red';
+                    messageArea.textContent = data.msg || 'Registration failed.';
+                }
+            } catch (error) {
+                messageArea.style.color = 'red';
+                messageArea.textContent = 'An error occurred. Please try again.';
+            }
+        }
+
+        async function login() {
+            const username = document.getElementById('login-username').value;
+            const password = document.getElementById('login-password').value;
+            
+            try {
+                const response = await fetch('/api/auth/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username, password })
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    window.location.href = '/chat.html';
+                } else {
+                    messageArea.style.color = 'red';
+                    messageArea.textContent = data.msg || 'Login failed.';
+                }
+            } catch (error) {
+                messageArea.style.color = 'red';
+                messageArea.textContent = 'An error occurred. Please try again.';
+            }
+        }
+    </script>
+</body>
+</html>
+
