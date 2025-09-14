@@ -22,6 +22,7 @@
             <!-- Chat Area -->
             <div class="chat-area">
                 <div class="messages-box" id="messages-box">
+                    <!-- Initial welcome message -->
                     <div class="chat-area-welcome">
                         <h2 id="chat-title">Select a user to start chatting</h2>
                     </div>
@@ -48,6 +49,7 @@
         // --- State ---
         let currentUser = null;
         let selectedUserId = null;
+        let adminId = null; // Will store admin's ID for regular users
         let socket;
         
         // --- Authentication & Initialization ---
@@ -59,7 +61,6 @@
             }
 
             try {
-                // Decode token to get user info
                 const payload = JSON.parse(atob(token.split('.')[1]));
                 currentUser = payload.user;
                 
@@ -70,10 +71,9 @@
                     adminPanel.style.display = 'block';
                     fetchUsers(token);
                 } else {
-                    // For regular users, set the admin as the recipient
                     chatTitle.textContent = "Chat with Admin";
                     messageInputArea.style.display = 'flex';
-                    selectedUserId = 'admin'; // A placeholder to fetch history with admin
+                    selectedUserId = 'admin'; // Placeholder to trigger history fetch
                     fetchChatHistory(token);
                 }
 
@@ -87,9 +87,11 @@
             socket = io({ auth: { token } });
 
             socket.on('receiveMessage', (message) => {
-                // Only display message if it's part of the currently active chat
-                const relevantUser = currentUser.isAdmin ? selectedUserId : message.senderId;
-                if (message.senderId === relevantUser || message.recipientId === relevantUser) {
+                const otherPartyId = currentUser.isAdmin ? selectedUserId : adminId;
+                
+                // Display message if it belongs to the current conversation
+                if ((message.senderId === otherPartyId && message.recipientId === currentUser.id) || 
+                    (message.recipientId === otherPartyId && message.senderId === currentUser.id)) {
                     displayMessage(message);
                 }
             });
@@ -124,10 +126,7 @@
                     const li = document.createElement('li');
                     li.dataset.userId = user._id;
                     li.dataset.username = user.username;
-                    li.innerHTML = `
-                        <span>${user.username}</span>
-                        <span class="status-dot"></span>
-                    `;
+                    li.innerHTML = `<span>${user.username}</span><span class="status-dot"></span>`;
                     li.onclick = () => selectUser(li);
                     userList.appendChild(li);
                 });
@@ -137,12 +136,9 @@
         }
         
         function selectUser(li) {
-            // Deselect previous
             const currentSelected = document.querySelector('#user-list li.selected');
-            if (currentSelected) {
-                currentSelected.classList.remove('selected');
-            }
-            // Select new
+            if (currentSelected) currentSelected.classList.remove('selected');
+            
             li.classList.add('selected');
             selectedUserId = li.dataset.userId;
             chatTitle.textContent = `Chat with ${li.dataset.username}`;
@@ -153,48 +149,51 @@
         
         async function fetchChatHistory(token) {
             if (!selectedUserId) return;
-            messagesBox.innerHTML = '<p>Loading history...</p>';
+            messagesBox.innerHTML = '<p class="info-text">Loading history...</p>';
             try {
                 const res = await fetch(`/api/messages/${selectedUserId}`, {
                     headers: { 'x-auth-token': token }
                 });
-                const messages = await res.json();
-                messagesBox.innerHTML = '';
-                messages.forEach(displayMessage);
+                const response = await res.json();
+                const messages = response.messages;
+                if (!currentUser.isAdmin) {
+                    adminId = response.adminId;
+                }
+                
+                messagesBox.innerHTML = ''; // Clear loading message
+                if (messages.length === 0) {
+                    const emptyState = document.createElement('div');
+                    emptyState.className = 'chat-area-welcome';
+                    emptyState.innerHTML = `<h2>This is the beginning of your conversation.</h2><p>Messages you send will appear here.</p>`;
+                    messagesBox.appendChild(emptyState);
+                } else {
+                    messages.forEach(displayMessage);
+                }
             } catch (error) {
                 console.error("Failed to fetch chat history:", error);
-                messagesBox.innerHTML = '<p>Could not load history.</p>';
+                messagesBox.innerHTML = '<p class="error-text">Could not load history.</p>';
             }
         }
 
         function sendMessage() {
             const text = messageInput.value.trim();
-            if (text && selectedUserId && socket) {
-                const recipientId = currentUser.isAdmin ? selectedUserId : null; // Server will know it's for admin if null
-                
-                const message = {
-                    recipientId: recipientId,
-                    text: text,
-                    // These will be added on the server, but useful for instant display
-                    senderId: currentUser.id,
-                    timestamp: new Date().toISOString()
-                };
-
-                socket.emit('sendMessage', message);
-                displayMessage(message, true); // Instantly display sent message
-                messageInput.value = '';
+            if (text && socket) {
+                const recipientId = currentUser.isAdmin ? selectedUserId : null;
+                socket.emit('sendMessage', { recipientId, text });
+                messageInput.value = ''; // Clear input immediately
             }
         }
 
-        messageInput.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
+        messageInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendMessage();
         });
 
-        function displayMessage(message, isInstant = false) {
-             // If this is an instantly displayed message, it's always 'sent'
-            const messageType = isInstant ? 'sent' : (message.senderId === currentUser.id ? 'sent' : 'received');
+        function displayMessage(message) {
+            // Remove the initial welcome message if it exists
+            const welcomeBox = messagesBox.querySelector('.chat-area-welcome');
+            if (welcomeBox) welcomeBox.remove();
+            
+            const messageType = message.senderId === currentUser.id ? 'sent' : 'received';
 
             const msgDiv = document.createElement('div');
             msgDiv.classList.add('message', messageType);
@@ -209,9 +208,8 @@
 
             msgDiv.appendChild(textP);
             msgDiv.appendChild(timeSpan);
-            messagesBox.appendChild(msgDiv);
+            messagesBox.appendChild(msgiv);
             
-            // Auto-scroll to the bottom
             messagesBox.scrollTop = messagesBox.scrollHeight;
         }
 
