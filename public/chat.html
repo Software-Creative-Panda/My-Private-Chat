@@ -1,0 +1,134 @@
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Chat Room</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div class="chat-container">
+            <header class="chat-header">
+                <h1 id="welcome-title">Chat</h1>
+                <button onclick="logout()" class="btn btn-logout">Logout</button>
+            </header>
+
+            <div class="main-layout">
+                <!-- Admin View: User List -->
+                <div id="admin-panel" class="admin-panel">
+                    <h2>Users</h2>
+                    <ul id="user-list"></ul>
+                </div>
+
+                <!-- Main Chat Area -->
+                <div class="chat-area">
+                    <div id="messages" class="messages-box"></div>
+                    <div class="message-input-area">
+                        <input type="text" id="message-input" placeholder="Type a message..." class="input-field">
+                        <button id="send-button" class="btn">Send</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <script src="/socket.io/socket.io.js"></script>
+        <script>
+            const token = localStorage.getItem('token');
+            if (!token) window.location.href = '/';
+
+            // Decode JWT to get user info
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            const currentUser = payload.user;
+
+            document.getElementById('welcome-title').textContent = `Welcome, ${currentUser.username}`;
+            const adminPanel = document.getElementById('admin-panel');
+            const userList = document.getElementById('user-list');
+
+            let selectedUserId = null; // For admin to select a user to chat with
+            const adminId = 'admin-james'; // Static ID for James
+
+            if (currentUser.isAdmin) {
+                document.title = "Admin Dashboard";
+                adminPanel.style.display = 'block';
+                fetchUsers();
+            } else {
+                selectedUserId = adminId; // Regular users can only talk to admin
+                adminPanel.style.display = 'none';
+            }
+            
+            // Connect to Socket.IO server
+            const socket = io({ query: { userId: currentUser.isAdmin ? adminId : currentUser.id } });
+            
+            const messagesBox = document.getElementById('messages');
+            const messageInput = document.getElementById('message-input');
+            const sendButton = document.getElementById('send-button');
+
+            async function fetchUsers() {
+                const response = await fetch('/api/users', { headers: { 'Authorization': `Bearer ${token}` } });
+                const users = await response.json();
+                userList.innerHTML = '';
+                users.forEach(user => {
+                    const li = document.createElement('li');
+                    li.textContent = user.username;
+                    li.dataset.userId = user._id;
+                    li.onclick = () => {
+                        selectedUserId = user._id;
+                        document.querySelectorAll('#user-list li').forEach(item => item.classList.remove('selected'));
+                        li.classList.add('selected');
+                        messagesBox.innerHTML = ''; // Clear messages when switching user
+                        document.querySelector('.chat-area').style.display = 'flex';
+                    };
+                    userList.appendChild(li);
+                });
+            }
+
+            function sendMessage() {
+                const message = messageInput.value;
+                if (message.trim() === '' || !selectedUserId) return;
+                
+                const senderId = currentUser.isAdmin ? adminId : currentUser.id;
+
+                socket.emit('sendMessage', {
+                    senderId: senderId,
+                    receiverId: selectedUserId,
+                    message: message
+                });
+                
+                appendMessage(message, 'sent');
+                messageInput.value = '';
+            }
+
+            socket.on('receiveMessage', ({ senderId, message }) => {
+                // Admin sees all messages, regular user only sees messages from admin
+                if(currentUser.isAdmin || senderId === adminId) {
+                     appendMessage(message, 'received');
+                }
+            });
+
+            function appendMessage(message, type) {
+                const messageElement = document.createElement('div');
+                messageElement.textContent = message;
+                messageElement.classList.add('message', type);
+                messagesBox.appendChild(messageElement);
+                messagesBox.scrollTop = messagesBox.scrollHeight;
+            }
+
+            function logout() {
+                localStorage.removeItem('token');
+                window.location.href = '/';
+            }
+            
+            sendButton.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') sendMessage();
+            });
+
+             if(currentUser.isAdmin) {
+                document.querySelector('.chat-area').style.display = 'none';
+             }
+
+        </script>
+    </body>
+    </html>
+    
