@@ -43,29 +43,34 @@ app.get('/api/users', authMiddleware, async (req, res) => {
 app.get('/api/messages/:userId', authMiddleware, async (req, res) => {
     try {
         const currentUserId = req.user.id;
-        let otherUserId = req.params.userId;
+        const otherUserId = req.params.userId;
         let adminId = null;
+        let messages = [];
 
         const admin = await User.findOne({ isAdmin: true });
-        if (!admin) {
-            return res.status(404).json({ msg: 'Admin account not found' });
-        }
-        adminId = admin._id;
-
-        if (req.user.isAdmin) {
-             otherUserId = req.params.userId;
+        if (admin) {
+            adminId = admin._id.toString();
         } else {
-            otherUserId = adminId;
+             // If there's no admin, there can be no history.
+            return res.json({ messages: [], adminId: null });
         }
-       
-        const messages = await Message.find({
-            $or: [
-                { senderId: currentUserId, recipientId: otherUserId },
-                { senderId: otherUserId, recipientId: currentUserId }
-            ]
-        }).sort({ timestamp: 1 });
         
-        res.json({ messages, adminId: adminId.toString() });
+        if (req.user.isAdmin) {
+            messages = await Message.find({
+                $or: [
+                    { senderId: currentUserId, recipientId: otherUserId },
+                    { senderId: otherUserId, recipientId: currentUserId }
+                ]
+            }).sort({ timestamp: 1 });
+        } else {
+            messages = await Message.find({
+                 $or: [
+                    { senderId: currentUserId, recipientId: adminId },
+                    { senderId: adminId, recipientId: currentUserId }
+                ]
+            }).sort({ timestamp: 1 });
+        }
+        res.json({ messages, adminId });
 
     } catch (err) {
         console.error(err.message);
@@ -112,25 +117,30 @@ io.on('connection', async (socket) => {
 
             if (!socket.user.isAdmin) {
                 const adminUser = await User.findOne({ isAdmin: true });
-                if (!adminUser) return;
+                if (!adminUser) {
+                    return io.to(socket.id).emit('messagingError', { error: 'Admin account not found. Cannot send message.' });
+                }
                 finalRecipientId = adminUser._id;
             }
 
-            const message = new Message({ senderId, recipientId: finalRecipientId, text });
-            const savedMessage = await message.save();
-
-            const senderSocketId = onlineUsers.get(senderId.toString());
-            const recipientSocketId = onlineUsers.get(finalRecipientId.toString());
-
-            if (senderSocketId) {
-                io.to(senderSocketId).emit('receiveMessage', savedMessage);
+            if (!finalRecipientId) {
+                 return io.to(socket.id).emit('messagingError', { error: 'No recipient selected.' });
             }
-            if (recipientSocketId && recipientSocketId !== senderSocketId) {
+
+            const message = new Message({ senderId, recipientId: finalRecipientId, text });
+            await message.save();
+            const savedMessage = message.toObject();
+
+            const recipientSocketId = onlineUsers.get(finalRecipientId.toString());
+            if (recipientSocketId) {
                 io.to(recipientSocketId).emit('receiveMessage', savedMessage);
             }
+            // Also send the message back to the sender to confirm it was saved and to sync the UI
+            io.to(socket.id).emit('receiveMessage', savedMessage);
 
         } catch (error) {
-            console.error("Error in sendMessage:", error);
+            console.error("Error saving or sending message:", error);
+            io.to(socket.id).emit('messagingError', { error: 'Could not send message.' });
         }
     });
 
