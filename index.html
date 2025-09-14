@@ -35,26 +35,51 @@
 </head>
 <body class="bg-pink-50 min-h-screen flex items-center justify-center p-4">
 
-    <div id="auth-container" class="bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 space-y-6 transform transition-all duration-300">
+    <!-- Landing Page -->
+    <div id="landing-container" class="bg-white rounded-3xl shadow-2xl w-full max-w-sm p-8 space-y-6 transform transition-all duration-300">
         <h2 class="text-3xl font-bold text-center text-pink-700">Welcome</h2>
-        <p class="text-sm text-center text-gray-600">Log in to view your chats or sign up to get started.</p>
-        <div id="status-message" class="hidden p-3 text-sm rounded-lg text-center font-semibold transition-all duration-300"></div>
-        <form id="auth-form" class="space-y-4">
-            <div>
-                <input type="text" id="auth-name" placeholder="Name" class="w-full px-4 py-3 rounded-lg border border-pink-200 focus:ring-pink-500 focus:border-pink-500 transition-colors duration-200" required>
-            </div>
-            <div>
-                <input type="email" id="auth-email" placeholder="Email" class="w-full px-4 py-3 rounded-lg border border-pink-200 focus:ring-pink-500 focus:border-pink-500 transition-colors duration-200">
-            </div>
-            <div>
-                <input type="password" id="auth-password" placeholder="Password" class="w-full px-4 py-3 rounded-lg border border-pink-200 focus:ring-pink-500 focus:border-pink-500 transition-colors duration-200">
-            </div>
-            <div class="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
-                <button type="button" id="login-btn" class="w-full px-4 py-3 bg-pink-600 text-white font-semibold rounded-lg shadow-md hover:bg-pink-700 transition-colors transform hover:scale-105">Log In</button>
-                <button type="button" id="signup-btn" class="w-full px-4 py-3 bg-pink-200 text-pink-800 font-semibold rounded-lg hover:bg-pink-300 transition-colors transform hover:scale-105">Sign Up</button>
-            </div>
-        </form>
+        <p class="text-sm text-center text-gray-600">Choose an option to continue.</p>
+        <div class="flex flex-col space-y-4">
+            <button id="show-login-btn" class="w-full px-4 py-3 bg-pink-600 text-white font-semibold rounded-lg shadow-md hover:bg-pink-700 transition-colors transform hover:scale-105">Log In</button>
+            <button id="show-signup-btn" class="w-full px-4 py-3 bg-pink-200 text-pink-800 font-semibold rounded-lg hover:bg-pink-300 transition-colors transform hover:scale-105">Sign Up</button>
+        </div>
     </div>
+
+    <!-- Login Container -->
+    <div id="login-container" class="hidden bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 space-y-6 transform transition-all duration-300">
+        <h2 class="text-3xl font-bold text-center text-pink-700">Log In</h2>
+        <div id="login-status" class="hidden p-3 text-sm rounded-lg text-center font-semibold transition-all duration-300"></div>
+        <form id="login-form" class="space-y-4">
+            <div>
+                <input type="email" id="login-email" placeholder="Email" class="w-full px-4 py-3 rounded-lg border border-pink-200 focus:ring-pink-500 focus:border-pink-500 transition-colors duration-200">
+            </div>
+            <div>
+                <input type="password" id="login-password" placeholder="Password" class="w-full px-4 py-3 rounded-lg border border-pink-200 focus:ring-pink-500 focus:border-pink-500 transition-colors duration-200">
+            </div>
+            <button type="button" id="login-form-btn" class="w-full px-4 py-3 bg-pink-600 text-white font-semibold rounded-lg shadow-md hover:bg-pink-700 transition-colors transform hover:scale-105">Log In</button>
+        </form>
+        <button id="back-to-landing-login" class="w-full text-sm text-pink-600 hover:text-pink-800 transition-colors">← Back</button>
+    </div>
+
+    <!-- Sign Up Container -->
+    <div id="signup-container" class="hidden bg-white rounded-3xl shadow-2xl w-full max-w-md p-8 space-y-6 transform transition-all duration-300">
+        <h2 class="text-3xl font-bold text-center text-pink-700">Sign Up</h2>
+        <div id="signup-status" class="hidden p-3 text-sm rounded-lg text-center font-semibold transition-all duration-300"></div>
+        <form id="signup-form" class="space-y-4">
+            <div>
+                <input type="text" id="signup-name" placeholder="Name" class="w-full px-4 py-3 rounded-lg border border-pink-200 focus:ring-pink-500 focus:border-pink-500 transition-colors duration-200" required>
+            </div>
+            <div>
+                <input type="email" id="signup-email" placeholder="Email" class="w-full px-4 py-3 rounded-lg border border-pink-200 focus:ring-pink-500 focus:border-pink-500 transition-colors duration-200">
+            </div>
+            <div>
+                <input type="password" id="signup-password" placeholder="Password" class="w-full px-4 py-3 rounded-lg border border-pink-200 focus:ring-pink-500 focus:border-pink-500 transition-colors duration-200">
+            </div>
+            <button type="button" id="signup-form-btn" class="w-full px-4 py-3 bg-pink-600 text-white font-semibold rounded-lg shadow-md hover:bg-pink-700 transition-colors transform hover:scale-105">Sign Up</button>
+        </form>
+        <button id="back-to-landing-signup" class="w-full text-sm text-pink-600 hover:text-pink-800 transition-colors">← Back</button>
+    </div>
+
 
     <div id="app-container" class="hidden bg-white rounded-3xl shadow-2xl w-full max-w-4xl h-[80vh] flex flex-col md:flex-row overflow-hidden transform transition-all duration-300">
         
@@ -73,7 +98,7 @@
         <!-- User View: Chat Interface -->
         <div id="chat-container" class="w-full md:w-2/3 flex flex-col">
             <header class="p-4 border-b border-pink-200 flex items-center justify-between bg-white shadow-sm">
-                 <button id="back-to-list-btn" class="text-pink-500 hover:text-pink-700 transition-colors">
+                 <button id="back-to-list-btn" class="hidden md:block text-pink-500 hover:text-pink-700 transition-colors">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                     </svg>
@@ -133,15 +158,29 @@
         setLogLevel('debug');
         
         // UI Elements
-        const authContainer = document.getElementById('auth-container');
+        const landingContainer = document.getElementById('landing-container');
+        const loginContainer = document.getElementById('login-container');
+        const signupContainer = document.getElementById('signup-container');
         const appContainer = document.getElementById('app-container');
-        const authForm = document.getElementById('auth-form');
-        const authName = document.getElementById('auth-name');
-        const authEmail = document.getElementById('auth-email');
-        const authPassword = document.getElementById('auth-password');
-        const statusMessage = document.getElementById('status-message');
-        const loginBtn = document.getElementById('login-btn');
-        const signupBtn = document.getElementById('signup-btn');
+        
+        const showLoginBtn = document.getElementById('show-login-btn');
+        const showSignupBtn = document.getElementById('show-signup-btn');
+        const backToLandingLogin = document.getElementById('back-to-landing-login');
+        const backToLandingSignup = document.getElementById('back-to-landing-signup');
+        
+        const loginForm = document.getElementById('login-form');
+        const loginEmail = document.getElementById('login-email');
+        const loginPassword = document.getElementById('login-password');
+        const loginFormBtn = document.getElementById('login-form-btn');
+        const loginStatus = document.getElementById('login-status');
+        
+        const signupForm = document.getElementById('signup-form');
+        const signupName = document.getElementById('signup-name');
+        const signupEmail = document.getElementById('signup-email');
+        const signupPassword = document.getElementById('signup-password');
+        const signupFormBtn = document.getElementById('signup-form-btn');
+        const signupStatus = document.getElementById('signup-status');
+        
         const logoutBtnUser = document.getElementById('logout-btn-user');
         const logoutBtnOwner = document.getElementById('logout-btn-owner');
         const userIdDisplay = document.getElementById('user-id-display');
@@ -166,10 +205,10 @@
 
         // --- Functions ---
         
-        function showMessage(text, isError = false) {
-            statusMessage.textContent = text;
-            statusMessage.className = `p-3 text-sm rounded-lg text-center font-semibold ${isError ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`;
-            statusMessage.classList.remove('hidden');
+        function showMessage(element, text, isError = false) {
+            element.textContent = text;
+            element.className = `p-3 text-sm rounded-lg text-center font-semibold ${isError ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'}`;
+            element.classList.remove('hidden');
         }
 
         function showLoading() {
@@ -202,7 +241,7 @@
             }
             return user.name || 'User';
         }
-
+        
         function renderMessages(messages) {
             messagesContainer.innerHTML = '';
             messages.forEach(msg => {
@@ -274,7 +313,7 @@
             userListContainer.classList.add('hidden');
             chatContainer.classList.remove('hidden');
             userIdDisplay.textContent = `ID: ${currentUser.uid}`;
-            chatHeader.textContent = `Your private chat`;
+            chatHeader.textContent = `Your private chat with James`;
 
             const chatId = currentUser.uid > OWNER_ID ? `${currentUser.uid}_${OWNER_ID}` : `${OWNER_ID}_${currentUser.uid}`;
             listenForMessages(chatId);
@@ -294,54 +333,80 @@
                     messageInput.value = '';
                 } catch (e) {
                     console.error("Error sending message:", e);
-                    showMessage("Error sending message.", true);
+                    showMessage(loginStatus, "Error sending message.", true);
                 }
             });
         }
         
         // --- Event Listeners ---
         
-        authForm.addEventListener('submit', (e) => e.preventDefault());
-        
-        backToListBtn.addEventListener('click', () => {
-             loadOwnerDashboard();
+        showLoginBtn.addEventListener('click', () => {
+            landingContainer.classList.add('hidden');
+            loginContainer.classList.remove('hidden');
+            signupContainer.classList.add('hidden');
+            loginEmail.value = '';
+            loginPassword.value = '';
+            loginStatus.classList.add('hidden');
         });
 
-        loginBtn.addEventListener('click', async () => {
-            const email = authEmail.value;
-            const password = authPassword.value;
+        showSignupBtn.addEventListener('click', () => {
+            landingContainer.classList.add('hidden');
+            loginContainer.classList.add('hidden');
+            signupContainer.classList.remove('hidden');
+            signupName.value = '';
+            signupEmail.value = '';
+            signupPassword.value = '';
+            signupStatus.classList.add('hidden');
+        });
+
+        backToLandingLogin.addEventListener('click', () => {
+            landingContainer.classList.remove('hidden');
+            loginContainer.classList.add('hidden');
+        });
+
+        backToLandingSignup.addEventListener('click', () => {
+            landingContainer.classList.remove('hidden');
+            signupContainer.classList.add('hidden');
+        });
+
+        loginFormBtn.addEventListener('click', async () => {
+            const email = loginEmail.value;
+            const password = loginPassword.value;
             showLoading();
             try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                showMessage("Logged in successfully!");
+                await signInWithEmailAndPassword(auth, email, password);
+                showMessage(loginStatus, "Logged in successfully!");
             } catch (error) {
                 console.error("Login failed:", error.code, error.message);
-                showMessage("Login failed. Please check your email and password.", true);
+                showMessage(loginStatus, "Login failed. Please check your email and password.", true);
             } finally {
                 hideLoading();
             }
         });
 
-        signupBtn.addEventListener('click', async () => {
-            const name = authName.value.trim();
-            const email = authEmail.value;
-            const password = authPassword.value;
+        signupFormBtn.addEventListener('click', async () => {
+            const name = signupName.value.trim();
+            const email = signupEmail.value;
+            const password = signupPassword.value;
             if (password.length < 6) {
-                showMessage("Password must be at least 6 characters.", true);
+                showMessage(signupStatus, "Password must be at least 6 characters.", true);
                 return;
             }
             if (!name) {
-                showMessage("Name is required.", true);
+                showMessage(signupStatus, "Name is required.", true);
                 return;
             }
             showLoading();
             try {
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
                 await createUserData(userCredential.user, name);
-                showMessage("Account created successfully! You can now log in.");
+                showMessage(signupStatus, "Account created successfully! You can now log in.", false);
+                landingContainer.classList.add('hidden');
+                loginContainer.classList.remove('hidden');
+                signupContainer.classList.add('hidden');
             } catch (error) {
                 console.error("Sign up failed:", error.code, error.message);
-                showMessage("Sign up failed. A user with that email may already exist or the password is too weak.", true);
+                showMessage(signupStatus, "Sign up failed. A user with that email may already exist or the password is too weak.", true);
             } finally {
                 hideLoading();
             }
@@ -349,34 +414,42 @@
 
         logoutBtnUser.addEventListener('click', async () => {
             await signOut(auth);
-            showMessage("Logged out successfully.");
+            showMessage(loginStatus, "Logged out successfully.");
         });
 
         logoutBtnOwner.addEventListener('click', async () => {
             await signOut(auth);
-            showMessage("Logged out successfully.");
+            showMessage(loginStatus, "Logged out successfully.");
+        });
+
+        backToListBtn.addEventListener('click', () => {
+             loadOwnerDashboard();
         });
 
         // --- Auth State Change Listener ---
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 currentUser = user;
-                authContainer.classList.add('hidden');
+                landingContainer.classList.add('hidden');
+                loginContainer.classList.add('hidden');
+                signupContainer.classList.add('hidden');
                 appContainer.classList.remove('hidden');
                 
                 if (currentUser.uid === OWNER_ID) {
                     await loadOwnerDashboard();
+                    backToListBtn.classList.remove('hidden');
                 } else {
                     await loadUserChat();
+                    backToListBtn.classList.add('hidden');
                 }
-                hideLoading(); // Hide loading when auth state is determined
             } else {
                 currentUser = null;
-                authContainer.classList.remove('hidden');
+                landingContainer.classList.remove('hidden');
+                loginContainer.classList.add('hidden');
+                signupContainer.classList.add('hidden');
                 appContainer.classList.add('hidden');
-                authForm.reset();
-                hideLoading(); // Hide loading when auth state is determined
             }
+             hideLoading(); // Hide loading when auth state is determined
         });
 
         // Event listener for sending messages
@@ -398,7 +471,7 @@
                 messageInput.value = '';
             } catch (e) {
                 console.error("Error sending message:", e);
-                showMessage("Error sending message.", true);
+                showMessage(loginStatus, "Error sending message.", true);
             }
         });
         
