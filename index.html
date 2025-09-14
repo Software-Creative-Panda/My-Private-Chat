@@ -197,6 +197,7 @@
             
             onSnapshot(q, async (snapshot) => {
                 const users = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                console.log("Found users in database:", users); // <--- DEBUGGING LINE
                 userList.innerHTML = '';
                 
                 for (const user of users) {
